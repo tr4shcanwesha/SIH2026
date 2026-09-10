@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beekeeper Dashboard — HoneyChain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="site-nav">
+  <div class="container">
+    <a href="../home/home.html" class="brand">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z" stroke="var(--gold-600)" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      HoneyChain
+    </a>
+    <div class="nav-links">
+      <a href="../home/home.html#how-it-works">How it works</a>
+      <a href="../home/home.html#features">Platform</a>
+      <a href="dashboard.html" class="active">Beekeeper dashboard</a>
+    </div>
+    <a href="../verify/verify.html" class="nav-cta">Verify a jar</a>
+  </div>
+</nav>
+
+<div class="dash-shell">
+  <aside class="dash-side">
+    <div class="side-link active">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Overview
+    </div>
+    <div class="side-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z"/></svg>
+      My hives
+    </div>
+    <div class="side-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19h16M4 15l4-5 4 3 5-7 3 4"/></svg>
+      Yield forecast
+    </div>
+    <div class="side-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="6" height="6"/><rect x="15" y="8" width="6" height="6"/><rect x="9" y="2" width="6" height="6"/><path d="M12 8V6M9 11H6v-3M15 11h3v-3"/></svg>
+      Batches &amp; ledger
+    </div>
+    <div class="side-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.3 2.9l-7 12.1A1.8 1.8 0 0 0 4.9 18h14.2a1.8 1.8 0 0 0 1.6-2.9l-7-12.1a1.8 1.8 0 0 0-3.1 0z"/><path d="M12 9v4M12 16h.01"/></svg>
+      Alerts
+    </div>
+    <h5>Account</h5>
+    <div class="side-link">Lakshmi Beekeepers</div>
+    <div class="side-link">Araku Valley Cluster</div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="dash-top">
+      <div>
+        <h2>Good morning, Lakshmi</h2>
+        <p style="margin:0; color:var(--ink-soft); font-size:0.92rem;">7 registered hives · Araku Valley cluster · last synced 4 minutes ago</p>
+      </div>
+      <div class="select-fake">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+        Last 7 days
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <span>Active hives</span>
+        <b>7 / 7</b>
+        <span class="kpi-trend trend-up">All reporting</span>
+      </div>
+      <div class="kpi-card">
+        <span>Colony health index</span>
+        <b>88%</b>
+        <span class="kpi-trend trend-up">▲ 3 pts vs last week</span>
+      </div>
+      <div class="kpi-card">
+        <span>Predicted yield, this season</span>
+        <b>142 kg</b>
+        <span class="kpi-trend trend-up">▲ on track vs plan</span>
+      </div>
+      <div class="kpi-card">
+        <span>Open AI alerts</span>
+        <b>2</b>
+        <span class="kpi-trend trend-warn">Hive 4 &amp; Hive 6</span>
+      </div>
+    </div>
+
+    <h3 style="font-size:1.2rem; margin-bottom:16px;">Hive status</h3>
+    <div class="hive-grid">
+      <div class="hive-card">
+        <div class="hive-top">
+          <div><h4>Hive 01</h4><span class="loc">North apiary row</span></div>
+          <span class="status-pill pill-good">Healthy</span>
+        </div>
+        <div class="sensor-row">
+          <div class="sensor"><span>Temperature</span><b>34.6°C</b></div>
+          <div class="sensor"><span>Humidity</span><b>58%</b></div>
+          <div class="sensor"><span>Weight</span><b>24.1 kg</b></div>
+          <div class="sensor"><span>Acoustic index</span><b>Normal</b></div>
+        </div>
+        <div class="ai-note">AI: brood pattern and foraging activity within normal range.</div>
+      </div>
+
+      <div class="hive-card">
+        <div class="hive-top">
+          <div><h4>Hive 02</h4><span class="loc">North apiary row</span></div>
+          <span class="status-pill pill-good">Healthy</span>
+        </div>
+        <div class="sensor-row">
+          <div class="sensor"><span>Temperature</span><b>35.0°C</b></div>
+          <div class="sensor"><span>Humidity</span><b>55%</b></div>
+          <div class="sensor"><span>Weight</span><b>26.7 kg</b></div>
+          <div class="sensor"><span>Acoustic index</span><b>Normal</b></div>
+        </div>
+        <div class="ai-note">AI: strong weight gain trend — on pace to lead this season's yield.</div>
+      </div>
+
+      <div class="hive-card status-warn">
+        <div class="hive-top">
+          <div><h4>Hive 04</h4><span class="loc">East slope</span></div>
+          <span class="status-pill pill-warn">Needs check</span>
+        </div>
+        <div class="sensor-row">
+          <div class="sensor"><span>Temperature</span><b>32.1°C</b></div>
+          <div class="sensor"><span>Humidity</span><b>71%</b></div>
+          <div class="sensor"><span>Weight</span><b>18.3 kg</b></div>
+          <div class="sensor"><span>Acoustic index</span><b>Elevated</b></div>
+        </div>
+        <div class="ai-note warn">AI: humidity and acoustic pattern match early signs of varroa mite stress. Inspection recommended within 48 hrs.</div>
+      </div>
+
+      <div class="hive-card">
+        <div class="hive-top">
+          <div><h4>Hive 05</h4><span class="loc">East slope</span></div>
+          <span class="status-pill pill-good">Healthy</span>
+        </div>
+        <div class="sensor-row">
+          <div class="sensor"><span>Temperature</span><b>34.8°C</b></div>
+          <div class="sensor"><span>Humidity</span><b>56%</b></div>
+          <div class="sensor"><span>Weight</span><b>22.9 kg</b></div>
+          <div class="sensor"><span>Acoustic index</span><b>Normal</b></div>
+        </div>
+        <div class="ai-note">AI: no anomalies detected in the past 7 days.</div>
+      </div>
+
+      <div class="hive-card status-warn">
+        <div class="hive-top">
+          <div><h4>Hive 06</h4><span class="loc">South orchard</span></div>
+          <span class="status-pill pill-warn">Needs check</span>
+        </div>
+        <div class="sensor-row">
+          <div class="sensor"><span>Temperature</span><b>36.4°C</b></div>
+          <div class="sensor"><span>Humidity</span><b>49%</b></div>
+          <div class="sensor"><span>Weight</span><b>15.6 kg</b></div>
+          <div class="sensor"><span>Acoustic index</span><b>Low</b></div>
+        </div>
+        <div class="ai-note warn">AI: weight loss and reduced foraging activity — possible forage shortage nearby.</div>
+      </div>
+
+      <div class="hive-card">
+        <div class="hive-top">
+          <div><h4>Hive 07</h4><span class="loc">South orchard</span></div>
+          <span class="status-pill pill-good">Healthy</span>
+        </div>
+        <div class="sensor-row">
+          <div class="sensor"><span>Temperature</span><b>34.2°C</b></div>
+          <div class="sensor"><span>Humidity</span><b>57%</b></div>
+          <div class="sensor"><span>Weight</span><b>23.4 kg</b></div>
+          <div class="sensor"><span>Acoustic index</span><b>Normal</b></div>
+        </div>
+        <div class="ai-note">AI: consistent build-up, ready for harvest assessment in ~10 days.</div>
+      </div>
+    </div>
+
+    <div class="panel-row">
+      <div class="panel">
+        <h4>Predicted honey yield by hive</h4>
+        <p class="sub">This season, kilograms — AI productivity model</p>
+        <div class="bar-chart">
+          <div class="bar" style="height:78%"><span>H1</span></div>
+          <div class="bar" style="height:92%"><span>H2</span></div>
+          <div class="bar" style="height:48%"><span>H4</span></div>
+          <div class="bar" style="height:70%"><span>H5</span></div>
+          <div class="bar" style="height:40%"><span>H6</span></div>
+          <div class="bar" style="height:74%"><span>H7</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h4>Recent alerts</h4>
+        <p class="sub">Auto-generated from sensor &amp; imagery analysis</p>
+        <div class="alert-list">
+          <div class="alert-item"><span class="alert-dot dot-warn"></span><div>Hive 04 — possible varroa mite stress detected <br><span style="color:var(--ink-soft); font-size:0.78rem;">2 hours ago</span></div></div>
+          <div class="alert-item"><span class="alert-dot dot-warn"></span><div>Hive 06 — weight drop suggests forage shortage <br><span style="color:var(--ink-soft); font-size:0.78rem;">Yesterday</span></div></div>
+          <div class="alert-item"><span class="alert-dot dot-info"></span><div>Batch #HC-7734-IN lab results posted to ledger <br><span style="color:var(--ink-soft); font-size:0.78rem;">2 days ago</span></div></div>
+          <div class="alert-item"><span class="alert-dot dot-good"></span><div>Hive 07 cleared for harvest window <br><span style="color:var(--ink-soft); font-size:0.78rem;">3 days ago</span></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
