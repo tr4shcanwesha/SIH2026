@@ -1,9 +1,22 @@
-<div class="dash-top">
-  <div><h2>My hives</h2><p style="margin:0; color:var(--ink-soft); font-size:0.92rem;">7 registered hives · Araku Valley cluster</p></div>
-  <div class="select-fake">Hive network</div>
+<div class="dash-top hive-page-top">
+  <div><h2>My hives</h2><p id="hive-summary" style="margin:0; color:var(--ink-soft); font-size:0.92rem;">Loading your hives...</p></div>
+  <button class="nav-cta add-hive-button" type="button" id="open-add-hive">Add hive</button>
 </div>
-<div class="hive-grid">
-  <div class="hive-card"><div class="hive-top"><div><h4>Hive 01</h4><span class="loc">North apiary row</span></div><span class="status-pill pill-good">Healthy</span></div><div class="sensor-row"><div class="sensor"><span>Temperature</span><b>34.6°C</b></div><div class="sensor"><span>Humidity</span><b>58%</b></div></div></div>
-  <div class="hive-card"><div class="hive-top"><div><h4>Hive 02</h4><span class="loc">North apiary row</span></div><span class="status-pill pill-good">Healthy</span></div><div class="sensor-row"><div class="sensor"><span>Temperature</span><b>35.0°C</b></div><div class="sensor"><span>Humidity</span><b>55%</b></div></div></div>
-  <div class="hive-card status-warn"><div class="hive-top"><div><h4>Hive 04</h4><span class="loc">East slope</span></div><span class="status-pill pill-warn">Needs check</span></div><div class="sensor-row"><div class="sensor"><span>Temperature</span><b>32.1°C</b></div><div class="sensor"><span>Humidity</span><b>71%</b></div></div></div>
+
+<div class="hive-tools">
+  <label class="hive-search"><span>Search hives</span><input id="hive-search-input" type="search" placeholder="Search by ID, location, or species"></label>
 </div>
+
+<form class="add-hive-form" id="add-hive-form" hidden>
+  <div class="add-hive-fields">
+    <label>Location<input name="location" required></label>
+    <label>Bee species<input name="bee_species" required></label>
+    <label>Hive type<input name="hive_type" required></label>
+    <label>Installation date<input name="installation_date" type="date" required></label>
+    <label>Status<select name="status"><option>Healthy</option><option>Needs check</option><option>Inactive</option></select></label>
+  </div>
+  <div class="add-hive-actions"><button class="nav-cta" type="submit">Save hive</button><button class="plain-button" type="button" id="cancel-add-hive">Cancel</button></div>
+  <p class="hive-form-status" id="hive-form-status" role="status"></p>
+</form>
+
+<div class="hive-list" id="hive-list" aria-live="polite"></div>

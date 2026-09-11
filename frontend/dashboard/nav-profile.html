@@ -1,0 +1,14 @@
+<div class="profile-wrap">
+  <a class="profile-button" href="/profile" aria-label="Open beekeeper profile">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.5"/>
+      <path d="M5 21c.7-3.5 3.2-5.5 7-5.5s6.3 2 7 5.5"/>
+    </svg>
+  </a>
+  <div id="profile-menu" class="profile-menu" hidden>
+    <a href="/profile">View profile</a>
+    <form class="signout-form" action="/api/auth/logout" method="post">
+      <button type="submit">Sign out</button>
+    </form>
+  </div>
+</div>

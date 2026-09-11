@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beekeeper profile — HoneyChain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard/style.css">
+</head>
+<body>
+<nav class="site-nav"><div class="container"><a href="/dashboard" class="brand">HoneyChain</a><a class="nav-cta" href="/dashboard">Dashboard</a></div></nav>
+<main class="profile-page">
+  <section class="profile-panel">
+    <span class="eyebrow-tag"><span class="dot"></span> Beekeeper profile</span>
+    <h1 id="profile-name">Loading profile...</h1>
+    <div class="profile-fields" id="profile-fields"></div>
+    <h2>Production overview</h2>
+    <div class="profile-stats" id="profile-stats"></div>
+    <form class="profile-edit-form" id="profile-edit-form" hidden>
+      <label>Name<input name="name" required></label>
+      <label>Phone<input name="phone" type="tel" required></label>
+      <label>Location<input name="location" required></label>
+      <button class="harvest-action-button" type="submit">Save profile</button>
+      <p id="profile-status" role="status"></p>
+    </form>
+    <button class="timeline-button" id="edit-profile" type="button">Edit profile</button>
+    <button class="delete-account-button" id="delete-account" type="button">Delete account</button>
+    <form class="profile-signout" action="/api/auth/logout" method="post"><button type="submit">Sign out</button></form>
+  </section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/auth/session.js"></script>
+<script src="/assets/auth/logout.js"></script>
+<script src="/assets/dashboard/profile.js"></script>
+</body>
+</html>
