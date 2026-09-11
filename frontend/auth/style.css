@@ -19,6 +19,10 @@
 .auth-card .eyebrow-tag{margin-bottom:20px;}
 .auth-card h1{font-size:2.55rem; max-width:11ch;}
 .auth-intro{font-size:1.02rem; margin:16px 0 28px;}
+.credentials-form{display:grid;gap:10px;}
+.credentials-form label{font-size:.82rem;font-weight:700;color:var(--comb-900);}
+.credentials-form input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:var(--wax-100);color:var(--ink);font:inherit;margin-bottom:8px;}
+.credentials-form input:focus{outline:3px solid rgba(31,111,92,.22);border-color:var(--verified-teal);}
 .auth-mode{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-bottom:16px;background:var(--wax-100);border:1px solid var(--line);border-radius:100px;}
 .mode-button{border:0;border-radius:100px;padding:9px;background:transparent;color:var(--ink-soft);font:600 .88rem var(--font-body);cursor:pointer;}
 .mode-button.active{background:var(--wax-50);color:var(--comb-900);box-shadow:0 2px 8px rgba(42,27,15,.08);}

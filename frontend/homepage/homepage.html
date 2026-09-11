@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HoneyChain Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/home/style.css">
+<link rel="stylesheet" href="/assets/homepage/style.css">
+</head>
+<body>
+<nav class="site-nav">
+  <div class="container">
+    <a href="/homepage" class="brand">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z" stroke="var(--gold-600)" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      HoneyChain
+    </a>
+    <div class="nav-links">
+      <a href="/dashboard">Beekeeper dashboard</a>
+      <a href="/verify">Verify a jar</a>
+    </div>
+    <form action="/api/auth/logout" method="post">
+      <button class="nav-cta" type="submit">Sign out</button>
+    </form>
+  </div>
+</nav>
+
+<main class="homepage-shell">
+  <section class="homepage-hero">
+    <span class="eyebrow-tag"><span class="dot"></span> Admin workspace</span>
+    <h1>Welcome back to your hive network.</h1>
+    <p>From this home base, review the beekeeper dashboard, check jar authenticity, and keep every harvest story connected.</p>
+    <div class="homepage-actions">
+      <a class="btn btn-primary" href="/dashboard">Open beekeeper dashboard</a>
+      <a class="btn btn-outline" href="/verify">Verify a jar</a>
+    </div>
+  </section>
+  <section class="homepage-grid" aria-label="HoneyChain tools">
+    <a class="homepage-card" href="/dashboard">
+      <span class="card-kicker">01 / Operations</span>
+      <h2>Hive command center</h2>
+      <p>Review hive health, sensor readings, yield forecasts, and active alerts.</p>
+    </a>
+    <a class="homepage-card" href="/verify">
+      <span class="card-kicker">02 / Trust</span>
+      <h2>Trace a honey jar</h2>
+      <p>Open the consumer view and inspect a batch's origin, lab record, and ledger confirmations.</p>
+    </a>
+  </section>
+</main>
+</body>
+</html>
