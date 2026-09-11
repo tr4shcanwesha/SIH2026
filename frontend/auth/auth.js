@@ -1,81 +1,59 @@
-const API_BASE_URL = 'http://localhost:8000';
-const signInButton = document.querySelector('#google-sign-in');
-const signOutButton = document.querySelector('#sign-out');
-const statusMessage = document.querySelector('#auth-status');
-const signedInPanel = document.querySelector('#signed-in');
-const loginModeButton = document.querySelector('#login-mode');
-const signupModeButton = document.querySelector('#signup-mode');
-const authIntro = document.querySelector('#auth-intro');
+const googleButton = document.querySelector('#google-sign-in');
+const googleStatus = document.querySelector('#google-status');
 
-let authMode = 'login';
+async function startGoogleSignIn() {
+  googleButton.disabled = true;
+  googleStatus.textContent = '';
 
-let supabaseClient;
-
-function showStatus(message = '') {
-  statusMessage.textContent = message;
-}
-
-function showUser(user) {
-  if (!user) {
-    signedInPanel.hidden = true;
-    signInButton.hidden = false;
-    return;
-  }
-
-  signedInPanel.hidden = false;
-  signInButton.hidden = true;
-}
-
-function setAuthMode(mode) {
-  authMode = mode;
-  const isSignup = mode === 'signup';
-  loginModeButton.classList.toggle('active', !isSignup);
-  signupModeButton.classList.toggle('active', isSignup);
-  signInButton.lastChild.textContent = isSignup ? ' Sign up with Google' : ' Continue with Google';
-  authIntro.textContent = isSignup
-    ? 'Create your HoneyChain account with your Google account and keep every harvest record connected.'
-    : 'Sign in with your Google account to manage your hives and follow batches.';
-}
-
-async function loadAuth() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/config`);
-    if (!response.ok) throw new Error('The authentication service is unavailable.');
-    const config = await response.json();
-    supabaseClient = window.supabase.createClient(config.supabase_url, config.supabase_anon_key);
+    const configResponse = await fetch('/api/auth/config');
+    if (!configResponse.ok) throw new Error('Authentication is unavailable.');
 
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    showUser(session?.user);
+    const config = await configResponse.json();
+    const supabaseClient = window.supabase.createClient(
+      config.supabase_url,
+      config.supabase_anon_key
+    );
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: new URL('/auth', document.baseURI).href }
+    });
 
-    if (session?.access_token) {
-      await fetch(`${API_BASE_URL}/api/auth/session`, {
-        headers: { Authorization: `Bearer ${session.access_token}` }
-      });
-    }
+    if (error) throw error;
   } catch (error) {
-    showStatus(error.message);
+    googleStatus.textContent = error.message;
+    googleButton.disabled = false;
   }
 }
 
-signInButton.addEventListener('click', async () => {
-  showStatus('');
-  signInButton.disabled = true;
-  const { error } = await supabaseClient.auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: window.location.href }
-  });
-  if (error) {
-    showStatus(error.message);
-    signInButton.disabled = false;
-  }
+async function exchangeGoogleSession() {
+  const configResponse = await fetch('/api/auth/config');
+  if (!configResponse.ok) return;
+
+  const config = await configResponse.json();
+  const supabaseClient = window.supabase.createClient(
+    config.supabase_url,
+    config.supabase_anon_key
+  );
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  if (!session?.access_token) return;
+
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = '/api/auth/google-session';
+
+  const token = document.createElement('input');
+  token.type = 'hidden';
+  token.name = 'access_token';
+  token.value = session.access_token;
+  form.appendChild(token);
+
+  document.body.appendChild(form);
+  form.submit();
+}
+
+googleButton.addEventListener('click', startGoogleSignIn);
+exchangeGoogleSession().catch((error) => {
+  googleStatus.textContent = error.message;
 });
-
-loginModeButton.addEventListener('click', () => setAuthMode('login'));
-signupModeButton.addEventListener('click', () => setAuthMode('signup'));
-
-signOutButton.addEventListener('click', async () => {
-  await supabaseClient.auth.signOut();
-  showUser(null);
-});
-
-loadAuth();

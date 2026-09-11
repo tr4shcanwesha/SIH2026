@@ -87,6 +87,8 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
   transition:background .15s;
 }
 .nav-cta:hover{background:var(--gold-600); color:var(--comb-900);}
+.signout-form{margin:0;}
+.signout-form .nav-cta{border:0;cursor:pointer;font:600 .92rem var(--font-body);}
 .nav-toggle{display:none;}
 
 /* ================================================

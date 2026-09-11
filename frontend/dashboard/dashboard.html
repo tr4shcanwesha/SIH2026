@@ -6,22 +6,24 @@
 <title>Beekeeper Dashboard — HoneyChain</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/assets/dashboard/style.css">
 </head>
 <body>
 
 <nav class="site-nav">
   <div class="container">
-    <a href="../home/home.html" class="brand">
+    <a href="/" class="brand">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z" stroke="var(--gold-600)" stroke-width="1.6" stroke-linejoin="round"/></svg>
       HoneyChain
     </a>
     <div class="nav-links">
-      <a href="../home/home.html#how-it-works">How it works</a>
-      <a href="../home/home.html#features">Platform</a>
-      <a href="dashboard.html" class="active">Beekeeper dashboard</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#features">Platform</a>
+      <a href="/dashboard" class="active">Beekeeper dashboard</a>
     </div>
-    <a href="../verify/verify.html" class="nav-cta">Verify a jar</a>
+    <form class="signout-form" action="/api/auth/logout" method="post">
+      <button class="nav-cta" type="submit">Sign out</button>
+    </form>
   </div>
 </nav>
 
@@ -200,6 +202,9 @@
     </div>
   </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/auth/logout.js"></script>
 
 </body>
 </html>

@@ -18,13 +18,24 @@ Fill `.env` with values from the Supabase project dashboard, then run:
 $env:SUPABASE_URL = "https://your-project-ref.supabase.co"
 $env:SUPABASE_ANON_KEY = "your-supabase-anon-key"
 $env:SUPABASE_SERVICE_ROLE_KEY = "your-supabase-service-role-key"
-$env:FRONTEND_URL = "http://localhost:5500"
+$env:FRONTEND_URL = "http://localhost:8000"
 uvicorn app.main:app --reload --port 8000
 ```
 
 Enable Google under Supabase Dashboard > Authentication > Providers > Google, and add the Supabase callback URL shown there. Add the frontend auth URL to the provider redirect allow list:
 
-`http://localhost:5500/auth/auth.html`
+`http://localhost:8000/auth`
+
+The FastAPI server serves both the API and the frontend. Open the application at
+`http://localhost:8000/`; no separate frontend server is needed.
+
+For the prototype admin login, use:
+
+- Username: `honey`
+- Password: `chain`
+
+The public landing page is `/`. A successful login goes to the separate protected
+homepage at `/homepage`, while `/dashboard` is also protected by the same session.
 
 Endpoints:
 

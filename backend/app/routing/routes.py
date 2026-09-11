@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.auth.auth import router as auth_router
+from app.routing.router import router as page_router
 
 router = APIRouter()
 
@@ -11,3 +12,4 @@ def health() -> dict[str, str]:
 
 
 router.include_router(auth_router)
+router.include_router(page_router)

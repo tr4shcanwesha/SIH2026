@@ -6,18 +6,18 @@
 <title>Account access — HoneyChain</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../home/style.css">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/assets/home/style.css">
+<link rel="stylesheet" href="/assets/auth/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <nav class="site-nav">
   <div class="container">
-    <a href="../home/home.html" class="brand">
+    <a href="/" class="brand">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z" stroke="var(--gold-600)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 2V22M3 7L12 12M21 7L12 12M3 17L12 12M21 17L12 12" stroke="var(--gold-500)" stroke-width="1" opacity="0.5"/></svg>
       HoneyChain
     </a>
-    <a href="../home/home.html" class="nav-cta">Back home</a>
+    <a href="/" class="nav-cta">Back home</a>
   </div>
 </nav>
 
@@ -25,24 +25,20 @@
   <section class="auth-card" aria-labelledby="auth-title">
     <span class="eyebrow-tag"><span class="dot"></span> HoneyChain account</span>
     <h1 id="auth-title">Your hive, one trusted sign-in.</h1>
-    <p id="auth-intro" class="auth-intro">Sign in to manage your hives, follow batches, and keep every harvest record connected.</p>
-    <div class="auth-mode" role="group" aria-label="Account access mode">
-      <button id="login-mode" class="mode-button active" type="button">Log in</button>
-      <button id="signup-mode" class="mode-button" type="button">Sign up</button>
-    </div>
-    <button id="google-sign-in" class="google-button" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.35 12.23c0-.72-.06-1.42-.18-2.09H12v3.96h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.26Z"/><path fill="#34A853" d="M12 21.5c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.7-1.72-5.47-4.03H3.29v2.53A9.74 9.74 0 0 0 12 21.5Z"/><path fill="#FBBC05" d="M6.53 13.58A5.85 5.85 0 0 1 6.22 12c0-.55.11-1.08.31-1.58V7.89H3.29A9.74 9.74 0 0 0 2.25 12c0 1.57.38 3.06 1.04 4.11l3.24-2.53Z"/><path fill="#EA4335" d="M12 6.39c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.46 14.63 2.5 12 2.5a9.74 9.74 0 0 0-8.71 5.39l3.24 2.53C7.3 8.11 9.46 6.39 12 6.39Z"/></svg>
-      Continue with Google
-    </button>
-    <p id="auth-status" class="auth-status" role="status"></p>
-    <div id="signed-in" class="signed-in" hidden>
-      <span class="chain-badge">Signed in</span>
-      <p>Your Google account is connected to HoneyChain.</p>
-      <button id="sign-out" class="text-button" type="button">Sign out</button>
-    </div>
-    <p class="auth-note">Authentication is securely handled by Supabase. HoneyChain never sees your Google password.</p>
+    <p class="auth-intro">Use your HoneyChain admin credentials to enter the beekeeper workspace.</p>
+    <form class="credentials-form" action="/api/auth/login" method="post">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <button class="google-button" type="submit">Enter HoneyChain</button>
+    </form>
+    <div class="auth-divider"><span>or</span></div>
+    <button id="google-sign-in" class="google-button google-oauth-button" type="button">Continue with Google</button>
+    <p id="google-status" class="auth-status" role="status"></p>
+    <p class="auth-note">Only the authorized HoneyChain admin account can enter this workspace.</p>
   </section>
 </main>
-<script src="auth.js"></script>
+<script src="/assets/auth/auth.js"></script>
 </body>
 </html>
