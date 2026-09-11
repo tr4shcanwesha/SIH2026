@@ -1,0 +1,51 @@
+.auth-shell{
+  min-height:calc(100vh - 73px);
+  display:grid;
+  place-items:center;
+  padding:64px 28px;
+  background:
+    radial-gradient(circle at 15% 25%, rgba(232,163,23,0.10), transparent 35%),
+    radial-gradient(circle at 85% 75%, rgba(31,111,92,0.08), transparent 38%),
+    var(--wax-100);
+}
+.auth-card{
+  width:min(100%, 500px);
+  background:var(--wax-50);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:42px;
+  box-shadow:var(--shadow-soft);
+}
+.auth-card .eyebrow-tag{margin-bottom:20px;}
+.auth-card h1{font-size:2.55rem; max-width:11ch;}
+.auth-intro{font-size:1.02rem; margin:16px 0 28px;}
+.auth-mode{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;margin-bottom:16px;background:var(--wax-100);border:1px solid var(--line);border-radius:100px;}
+.mode-button{border:0;border-radius:100px;padding:9px;background:transparent;color:var(--ink-soft);font:600 .88rem var(--font-body);cursor:pointer;}
+.mode-button.active{background:var(--wax-50);color:var(--comb-900);box-shadow:0 2px 8px rgba(42,27,15,.08);}
+.google-button{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  padding:14px 20px;
+  border:1px solid var(--line);
+  border-radius:100px;
+  background:var(--comb-900);
+  color:var(--wax-50);
+  font:600 0.98rem var(--font-body);
+  cursor:pointer;
+  transition:background .15s, transform .15s;
+}
+.google-button svg{width:20px;height:20px;background:var(--wax-50);border-radius:50%;padding:2px;}
+.google-button:hover{background:var(--gold-600);color:var(--comb-900);transform:translateY(-2px);}
+.auth-status{min-height:24px;margin:16px 0 0;color:var(--alert-rust);font-size:.88rem;}
+.signed-in{margin-top:8px;padding:16px;background:rgba(31,111,92,.08);border-radius:12px;}
+.signed-in p{margin:10px 0 4px;font-weight:600;color:var(--comb-900);word-break:break-word;}
+.text-button{border:0;padding:0;background:none;color:var(--verified-teal);font:600 .88rem var(--font-body);cursor:pointer;}
+.auth-note{margin:28px 0 0;padding-top:18px;border-top:1px solid var(--line);font-size:.78rem;}
+@media (max-width:720px){
+  .auth-shell{padding:36px 18px;}
+  .auth-card{padding:30px 24px;}
+  .auth-card h1{font-size:2.2rem;}
+}
