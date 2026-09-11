@@ -156,6 +156,7 @@ const loadDashboardView = async (viewName, updateHistory = false) => {
     }
 
     dashboardContent.innerHTML = newContent.innerHTML;
+    initializeHivePage();
     if (searchInput) {
       renderSearchResults(searchInput.value);
     }
@@ -187,3 +188,87 @@ window.addEventListener('popstate', () => {
   const viewName = window.location.pathname.split('/').pop() || 'overview';
   loadDashboardView(viewName);
 });
+
+const initializeHivePage = () => {
+  const hiveList = document.querySelector('#hive-list');
+  const searchInput = document.querySelector('#hive-search-input');
+  const summary = document.querySelector('#hive-summary');
+  const addForm = document.querySelector('#add-hive-form');
+  const openButton = document.querySelector('#open-add-hive');
+  const cancelButton = document.querySelector('#cancel-add-hive');
+  const formStatus = document.querySelector('#hive-form-status');
+
+  if (!hiveList || !searchInput || !addForm) return;
+  let hives = [];
+
+  const renderHives = () => {
+    const query = searchInput.value.trim().toLowerCase();
+    const visibleHives = hives.filter((hive) =>
+      [hive.hive_id, hive.location, hive.bee_species, hive.hive_type, hive.status]
+        .some((value) => String(value || '').toLowerCase().includes(query))
+    );
+    hiveList.innerHTML = visibleHives.length ? visibleHives.map((hive) => {
+      const statusClass = hive.status === 'Healthy' ? 'pill-good' : hive.status === 'Inactive' ? 'pill-inactive' : 'pill-warn';
+      const metric = (label, value) => `<div class="hive-metric"><span>${label}</span><b>${value || 'No data'}</b></div>`;
+      return `
+      <article class="hive-list-item">
+        <div class="hive-list-main">
+          <div class="hive-mark" aria-hidden="true">H</div>
+          <div><h3>${hive.hive_id}</h3><span class="hive-location">At ${hive.location}</span><p>${hive.notes || 'Live hive monitoring is active for this hive.'}</p></div>
+        </div>
+        <div class="hive-metrics">
+          ${metric('Temperature', hive.temperature ? `${hive.temperature}°C` : null)}
+          ${metric('Humidity', hive.humidity ? `${hive.humidity}%` : null)}
+          ${metric('Weight', hive.weight ? `${hive.weight} kg` : null)}
+          ${metric('Acoustic index', hive.acoustic_index || 'No data')}
+        </div>
+        <div class="hive-list-meta"><span>Installed</span><b>${hive.installation_date}</b><span>Species</span><b>${hive.bee_species}</b></div>
+        <span class="status-pill ${statusClass}">${hive.status}</span>
+        <button class="remove-hive-button" type="button" data-hive-id="${hive.hive_id}">Remove</button>
+      </article>`;
+    }).join('') : '<p class="hive-empty">No hives match your search.</p>';
+    summary.textContent = `${hives.length} registered hive${hives.length === 1 ? '' : 's'} · Updates every 10 seconds`;
+  };
+
+  const loadHives = async () => {
+    const response = await fetch('/api/hives');
+    if (!response.ok) throw new Error('Unable to load hives.');
+    hives = await response.json();
+    renderHives();
+  };
+
+  searchInput.addEventListener('input', renderHives);
+  hiveList.addEventListener('click', async (event) => {
+    const removeButton = event.target.closest('.remove-hive-button');
+    if (!removeButton) return;
+
+    const hiveId = removeButton.dataset.hiveId;
+    if (!window.confirm(`Remove hive ${hiveId}?`)) return;
+
+    removeButton.disabled = true;
+    removeButton.textContent = 'Removing...';
+    const response = await fetch(`/api/hives/${encodeURIComponent(hiveId)}`, { method: 'DELETE' });
+    if (!response.ok) {
+      removeButton.disabled = false;
+      removeButton.textContent = 'Remove';
+      return;
+    }
+    await loadHives();
+  });
+  openButton?.addEventListener('click', () => { addForm.hidden = false; openButton.hidden = true; });
+  cancelButton?.addEventListener('click', () => { addForm.reset(); addForm.hidden = true; openButton.hidden = false; });
+  addForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    formStatus.textContent = 'Saving hive...';
+    const payload = Object.fromEntries(new FormData(addForm));
+    const response = await fetch('/api/hives', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+    if (!response.ok) { formStatus.textContent = 'Hive could not be saved.'; return; }
+    addForm.reset(); addForm.hidden = true; openButton.hidden = false; formStatus.textContent = '';
+    await loadHives();
+  });
+  loadHives().catch((error) => { summary.textContent = error.message; });
+  window.clearInterval(window.hiveRefreshTimer);
+  window.hiveRefreshTimer = window.setInterval(() => loadHives().catch(() => {}), 10000);
+};
+
+initializeHivePage();

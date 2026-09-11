@@ -17,17 +17,33 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 ADMIN_USERNAME = "honey"
 ADMIN_PASSWORD = "chain"
-active_sessions: set[str] = set()
+active_sessions: dict[str, str] = {}
+
+
+def get_or_create_beekeeper(email: str) -> str:
+    existing = supabase.table("beekeeper").select("beekeeper_id").eq("email", email).limit(1).execute()
+    if existing.data:
+        return existing.data[0]["beekeeper_id"]
+
+    beekeeper_id = f"bk_{secrets.token_hex(8)}"
+    supabase.table("beekeeper").insert(
+        {"beekeeper_id": beekeeper_id, "name": email.split("@")[0], "email": email}
+    ).execute()
+    return beekeeper_id
 
 
 def create_admin_session() -> str:
     session_id = secrets.token_urlsafe(32)
-    active_sessions.add(session_id)
+    active_sessions[session_id] = ""
     return session_id
 
 
 def has_admin_session(session_id: Optional[str]) -> bool:
     return bool(session_id and session_id in active_sessions)
+
+
+def get_session_beekeeper_id(session_id: Optional[str]) -> Optional[str]:
+    return active_sessions.get(session_id) if session_id else None
 
 
 @router.get("/config")
@@ -54,10 +70,13 @@ def admin_login(
             status_code=401,
         )
 
+    beekeeper_id = get_or_create_beekeeper(os.getenv("ADMIN_EMAIL", "honey@honeychain.local"))
     response = RedirectResponse(url="/dashboard", status_code=303)
+    session_id = secrets.token_urlsafe(32)
+    active_sessions[session_id] = beekeeper_id
     response.set_cookie(
         key="honeychain_session",
-        value=create_admin_session(),
+        value=session_id,
         httponly=True,
         samesite="lax",
         max_age=3600,
@@ -81,10 +100,13 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
             status_code=401,
         )
 
+    beekeeper_id = get_or_create_beekeeper(user.user.email or "google-user@honeychain.local")
     response = RedirectResponse(url="/dashboard", status_code=303)
+    session_id = secrets.token_urlsafe(32)
+    active_sessions[session_id] = beekeeper_id
     response.set_cookie(
         key="honeychain_session",
-        value=create_admin_session(),
+        value=session_id,
         httponly=True,
         samesite="lax",
         max_age=3600,
@@ -95,7 +117,7 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
 @router.post("/logout", include_in_schema=False)
 def admin_logout(request: Request) -> RedirectResponse:
     session_id = request.cookies.get("honeychain_session")
-    active_sessions.discard(session_id)
+    active_sessions.pop(session_id, None)
     response = RedirectResponse(url="/", status_code=303)
     response.delete_cookie("honeychain_session")
     return response
