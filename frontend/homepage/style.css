@@ -4,6 +4,15 @@
 .homepage-hero h1{max-width:12ch;font-size:4rem;}
 .homepage-hero p{max-width:54ch;font-size:1.1rem;margin:20px 0 28px;}
 .homepage-actions{display:flex;gap:14px;flex-wrap:wrap;}
+.homepage-role-button{
+  border:1px solid var(--line); box-shadow:0 6px 18px rgba(42,27,15,0.06);
+}
+.beekeeper-button, .consumer-button{
+  background:rgba(244,198,78,0.24); color:var(--comb-800);
+}
+.beekeeper-button:hover, .consumer-button:hover{
+  background:var(--wax-100); color:var(--comb-800);
+}
 .homepage-card{display:block;background:var(--wax-50);border:1px solid var(--line);border-radius:14px;padding:30px;transition:transform .15s,box-shadow .15s;}
 .homepage-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-soft);}
 .homepage-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
