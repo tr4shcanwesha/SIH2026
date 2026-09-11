@@ -1,3 +1,4 @@
+import secrets
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
@@ -10,7 +11,6 @@ router = APIRouter()
 
 
 class HiveCreate(BaseModel):
-    hive_id: str
     location: str
     bee_species: str
     hive_type: str
@@ -41,11 +41,21 @@ def list_hives(request: Request) -> list[dict[str, Any]]:
 def add_hive(hive: HiveCreate, request: Request) -> dict[str, Any]:
     beekeeper_id = current_beekeeper_id(request)
     payload = hive.model_dump()
+    payload["hive_id"] = generate_unique_hive_id()
     payload["beekeeper_id"] = beekeeper_id
     response = supabase.table("hives").insert(payload).execute()
     if not response.data:
         raise HTTPException(status_code=400, detail="Hive could not be added")
     return response.data[0]
+
+
+def generate_unique_hive_id() -> str:
+    for _ in range(5):
+        hive_id = f"HC-{secrets.token_hex(4).upper()}"
+        existing = supabase.table("hives").select("hive_id").eq("hive_id", hive_id).limit(1).execute()
+        if not existing.data:
+            return hive_id
+    raise HTTPException(status_code=503, detail="Unable to generate a unique hive ID")
 
 
 @router.delete("/api/hives/{hive_id}", status_code=204)
