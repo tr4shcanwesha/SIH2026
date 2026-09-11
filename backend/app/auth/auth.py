@@ -20,16 +20,18 @@ ADMIN_PASSWORD = "chain"
 active_sessions: dict[str, str] = {}
 
 
-def get_or_create_beekeeper(email: str) -> str:
+def get_or_create_beekeeper(email: str) -> tuple[str, bool]:
     existing = supabase.table("beekeeper").select("beekeeper_id").eq("email", email).limit(1).execute()
     if existing.data:
-        return existing.data[0]["beekeeper_id"]
+        return existing.data[0]["beekeeper_id"], False
 
     beekeeper_id = f"bk_{secrets.token_hex(8)}"
-    supabase.table("beekeeper").insert(
-        {"beekeeper_id": beekeeper_id, "name": email.split("@")[0], "email": email}
+    response = supabase.table("beekeeper").insert(
+        {"beekeeper_id": beekeeper_id, "name": "", "email": email, "phone": "", "location": ""}
     ).execute()
-    return beekeeper_id
+    if not response.data:
+        raise RuntimeError("Beekeeper profile could not be created")
+    return beekeeper_id, True
 
 
 def create_admin_session() -> str:
@@ -70,8 +72,8 @@ def admin_login(
             status_code=401,
         )
 
-    beekeeper_id = get_or_create_beekeeper(os.getenv("ADMIN_EMAIL", "honey@honeychain.local"))
-    response = RedirectResponse(url="/dashboard", status_code=303)
+    beekeeper_id, is_new = get_or_create_beekeeper(os.getenv("ADMIN_EMAIL", "honey@honeychain.local"))
+    response = RedirectResponse(url="/onboarding" if is_new else "/dashboard", status_code=303)
     session_id = secrets.token_urlsafe(32)
     active_sessions[session_id] = beekeeper_id
     response.set_cookie(
@@ -100,8 +102,8 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
             status_code=401,
         )
 
-    beekeeper_id = get_or_create_beekeeper(user.user.email or "google-user@honeychain.local")
-    response = RedirectResponse(url="/dashboard", status_code=303)
+    beekeeper_id, is_new = get_or_create_beekeeper(user.user.email or "google-user@honeychain.local")
+    response = RedirectResponse(url="/onboarding" if is_new else "/dashboard", status_code=303)
     session_id = secrets.token_urlsafe(32)
     active_sessions[session_id] = beekeeper_id
     response.set_cookie(

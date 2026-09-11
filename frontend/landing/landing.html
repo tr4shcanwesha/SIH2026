@@ -7,7 +7,7 @@
 <meta name="description" content="A blockchain, AI and IoT ecosystem for honey authenticity, hive health and market access, built for KVIC's Honey Mission.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/home/style.css">
+<link rel="stylesheet" href="/assets/landing/style.css">
 </head>
 <body>
 
@@ -70,7 +70,7 @@
         <h4>Wild Forest Honey, 500g</h4>
         <div class="jar-meta">
           <div><span>Harvested by</span><b>Lakshmi Beekeepers, Araku</b></div>
-          <div><span>Harvest date</span><b>14 Mar 2026</b></div>
+          <div><span>Harvest date</span><b id="current-harvest-date">Loading...</b></div>
           <div><span>Moisture / purity</span><b>17.2% · Passed</b></div>
         </div>
       </div>
@@ -211,5 +211,10 @@
   </div>
 </section>
 
+<script>
+  document.querySelector('#current-harvest-date').textContent = new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+  }).format(new Date());
+</script>
 </body>
 </html>

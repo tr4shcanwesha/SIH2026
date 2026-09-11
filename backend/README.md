@@ -34,8 +34,8 @@ For the prototype admin login, use:
 - Username: `honey`
 - Password: `chain`
 
-The public landing page is `/`. A successful login goes to the separate protected
-homepage at `/homepage`, while `/dashboard` is also protected by the same session.
+The public landing page is `/` and its assets live under `frontend/landing`. A
+successful login goes to the protected `/dashboard` workspace.
 
 ## Database schema and data rules
 
@@ -119,6 +119,27 @@ Provide a **Trace back** action that retrieves the complete history from
 `public.blockchain_blocks` for that `batch_id`, ordered from the earliest block
 to the latest block.
 
+The server assigns the current harvest date when a batch is created; clients do
+not provide a dummy date. The backend appends a `BATCH_CREATED` block when a
+batch is created and appends a status event when the batch advances to
+`PROCESSED` or `DISTRIBUTED`. Each block's `data_hash` is calculated from the
+complete batch row together with its complete hive row. Beekeeper details are
+displayed separately but are not part of the security hash. The
+latest block stores the hash for the latest state, and each block links to the
+preceding block through `previous_hash`. The generated QR code points to
+`/verify/{batch_id}`. The public batch endpoint is
+`GET /api/public/batches/{batch_id}` and returns the batch, related hive and
+beekeeper details, its blockchain timeline, and verification results.
+
+When an email is not already present in `public.beekeeper`, authentication
+creates an incomplete record and sends the user to `/onboarding` to collect
+their name, phone number, and location. Existing beekeeper records go directly
+to the dashboard. The authenticated `GET /api/profile` endpoint returns the
+beekeeper details and cumulative hive/batch counts; `PATCH /api/profile` saves
+profile updates. `DELETE /api/profile` removes the beekeeper, hives, and honey
+batches. Matching blockchain rows are retained with their `batch_id` set to
+`NULL`, preserving their append-only history and hashes.
+
 Blockchain verification must perform both checks below:
 
 1. Recalculate the data hash from the current database data for the batch and
@@ -140,5 +161,11 @@ Endpoints:
 - `GET /api/honey-batches` lists batches belonging to the logged-in beekeeper.
 - `PATCH /api/honey-batches/{batch_id}` advances a batch from `HARVESTED` to
   `PROCESSED` or from `PROCESSED` to `DISTRIBUTED`.
+- `GET /api/public/batches/{batch_id}` returns a batch and its verified blockchain
+	timeline for consumer verification.
+- `GET /api/profile` returns the current beekeeper profile and cumulative counts.
+- `PATCH /api/profile` updates the current beekeeper's name, phone, and location.
+- `DELETE /api/profile` deletes the current beekeeper's relational data while
+	preserving detached blockchain history.
 - `GET /api/auth/config` returns only the public browser configuration.
 - `GET /api/auth/session` validates a Supabase access token sent as a Bearer token.

@@ -27,6 +27,10 @@ async function startGoogleSignIn() {
 }
 
 async function exchangeGoogleSession() {
+  const query = new URLSearchParams(window.location.search);
+  const isOAuthCallback = window.location.hash.includes('access_token') || query.has('code');
+  if (!isOAuthCallback) return;
+
   const configResponse = await fetch('/api/auth/config');
   if (!configResponse.ok) return;
 
