@@ -54,7 +54,7 @@ def admin_login(
             status_code=401,
         )
 
-    response = RedirectResponse(url="/homepage", status_code=303)
+    response = RedirectResponse(url="/dashboard", status_code=303)
     response.set_cookie(
         key="honeychain_session",
         value=create_admin_session(),
@@ -81,7 +81,7 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
             status_code=401,
         )
 
-    response = RedirectResponse(url="/homepage", status_code=303)
+    response = RedirectResponse(url="/dashboard", status_code=303)
     response.set_cookie(
         key="honeychain_session",
         value=create_admin_session(),

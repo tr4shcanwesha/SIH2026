@@ -89,6 +89,26 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
 .nav-cta:hover{background:var(--gold-600); color:var(--comb-900);}
 .signout-form{margin:0;}
 .signout-form .nav-cta{border:0;cursor:pointer;font:600 .92rem var(--font-body);}
+.profile-wrap{position:relative;}
+.profile-button{
+  width:40px; height:40px; display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); border-radius:50%; background:var(--wax-50); color:var(--comb-900);
+  cursor:pointer; transition:background .15s, color .15s;
+}
+.profile-button:hover{background:var(--gold-500); color:var(--comb-900);}
+.profile-menu{
+  position:absolute; right:0; top:calc(100% + 12px); z-index:60; min-width:210px;
+  padding:16px; background:var(--wax-50); border:1px solid var(--line); border-radius:12px;
+  box-shadow:var(--shadow-soft); display:flex; flex-direction:column; gap:3px;
+}
+.profile-menu[hidden]{display:none;}
+.profile-menu strong{font-size:.88rem; color:var(--comb-900);}
+.profile-menu > span{font-size:.78rem; color:var(--ink-soft); margin-bottom:10px;}
+.profile-menu .signout-form button{
+  width:100%; border:0; border-top:1px solid var(--line); padding:10px 0 0; background:none;
+  color:var(--alert-rust); cursor:pointer; text-align:left; font:600 .82rem var(--font-body);
+}
+.profile-menu .signout-form button:hover{color:var(--comb-900);}
 .nav-toggle{display:none;}
 
 /* ================================================
