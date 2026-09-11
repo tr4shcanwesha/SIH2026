@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/home/style.css">
 <link rel="stylesheet" href="/assets/auth/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <nav class="site-nav">
@@ -32,8 +33,12 @@
       <input id="password" name="password" type="password" autocomplete="current-password" required>
       <button class="google-button" type="submit">Enter HoneyChain</button>
     </form>
+    <div class="auth-divider"><span>or</span></div>
+    <button id="google-sign-in" class="google-button google-oauth-button" type="button">Continue with Google</button>
+    <p id="google-status" class="auth-status" role="status"></p>
     <p class="auth-note">Only the authorized HoneyChain admin account can enter this workspace.</p>
   </section>
 </main>
+<script src="/assets/auth/auth.js"></script>
 </body>
 </html>

@@ -65,6 +65,33 @@ def admin_login(
     return response
 
 
+@router.post("/google-session", include_in_schema=False, response_model=None)
+def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResponse:
+    try:
+        user = supabase.auth.get_user(access_token)
+    except Exception:
+        return HTMLResponse(
+            content='<h1>Google sign-in failed</h1><a href="/auth">Return to sign in</a>',
+            status_code=401,
+        )
+
+    if not user.user:
+        return HTMLResponse(
+            content='<h1>Google sign-in failed</h1><a href="/auth">Return to sign in</a>',
+            status_code=401,
+        )
+
+    response = RedirectResponse(url="/homepage", status_code=303)
+    response.set_cookie(
+        key="honeychain_session",
+        value=create_admin_session(),
+        httponly=True,
+        samesite="lax",
+        max_age=3600,
+    )
+    return response
+
+
 @router.post("/logout", include_in_schema=False)
 def admin_logout(request: Request) -> RedirectResponse:
     session_id = request.cookies.get("honeychain_session")

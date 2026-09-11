@@ -11,4 +11,6 @@
 .homepage-card p{margin-bottom:0;}
 .card-kicker{font-family:var(--font-mono);font-size:.72rem;color:var(--verified-teal);font-weight:700;letter-spacing:.04em;}
 .homepage-shell form{margin:0;}
+.signout-form{margin:0;}
+.signout-form .nav-cta{border:0;cursor:pointer;font:600 .92rem var(--font-body);}
 @media (max-width:720px){.homepage-shell{padding:48px 18px;}.homepage-hero h1{font-size:2.6rem;}.homepage-grid{grid-template-columns:1fr;}}

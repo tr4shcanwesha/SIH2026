@@ -49,6 +49,16 @@ def auth_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "auth" / "style.css")
 
 
+@router.get("/assets/auth/auth.js", include_in_schema=False)
+def auth_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "auth" / "auth.js")
+
+
+@router.get("/assets/auth/logout.js", include_in_schema=False)
+def logout_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "auth" / "logout.js")
+
+
 @router.get("/assets/dashboard/style.css", include_in_schema=False)
 def dashboard_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "dashboard" / "style.css")

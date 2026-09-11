@@ -21,7 +21,9 @@
       <a href="/#features">Platform</a>
       <a href="/dashboard" class="active">Beekeeper dashboard</a>
     </div>
-    <a href="/auth" class="nav-cta">Account access</a>
+    <form class="signout-form" action="/api/auth/logout" method="post">
+      <button class="nav-cta" type="submit">Sign out</button>
+    </form>
   </div>
 </nav>
 
@@ -200,6 +202,9 @@
     </div>
   </main>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/assets/auth/logout.js"></script>
 
 </body>
 </html>
