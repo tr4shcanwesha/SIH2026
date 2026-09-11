@@ -16,6 +16,21 @@ DASHBOARD_VIEWS = {
 }
 
 
+def render_dashboard_shell() -> str:
+    dashboard_file = FRONTEND_DIR / "dashboard" / "dashboard.html"
+    dashboard_html = dashboard_file.read_text(encoding="utf-8")
+    for slot_id, partial_name in (
+        ("nav-alerts-slot", "nav-alerts.html"),
+        ("nav-profile-slot", "nav-profile.html"),
+    ):
+        partial = (FRONTEND_DIR / "dashboard" / partial_name).read_text(encoding="utf-8")
+        dashboard_html = dashboard_html.replace(
+            f'<div id="{slot_id}"></div>',
+            partial,
+        )
+    return dashboard_html
+
+
 @router.get("/", include_in_schema=False)
 def landing_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "home" / "home.html")
@@ -30,7 +45,7 @@ def auth_page() -> FileResponse:
 def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
     if not has_admin_session(request.cookies.get("honeychain_session")):
         return RedirectResponse(url="/auth", status_code=303)
-    return FileResponse(FRONTEND_DIR / "dashboard" / "dashboard.html")
+    return HTMLResponse(render_dashboard_shell())
 
 
 @router.get("/dashboard/{view_name}", include_in_schema=False, response_model=None)
@@ -41,9 +56,8 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
         filename = DASHBOARD_VIEWS[view_name]
     except KeyError as error:
         raise HTTPException(status_code=404, detail="Dashboard view not found") from error
-    dashboard_file = FRONTEND_DIR / "dashboard" / "dashboard.html"
     view_file = FRONTEND_DIR / "dashboard" / filename
-    dashboard_html = dashboard_file.read_text(encoding="utf-8")
+    dashboard_html = render_dashboard_shell()
     view_html = view_file.read_text(encoding="utf-8")
     content_start = dashboard_html.index('<main class="dash-main" id="dashboard-content">')
     content_end = dashboard_html.index("</main>", content_start)
