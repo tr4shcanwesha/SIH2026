@@ -70,6 +70,7 @@ create table public.beekeeper (
 	name text not null,
 	email text not null,
 	phone text null,
+	location text null,
 	constraint beekeeper_pkey primary key (beekeeper_id)
 ) TABLESPACE pg_default;
 ```
@@ -89,6 +90,7 @@ create table public.honey_batches (
 	honey_type text not null,
 	harvest_date date not null,
 	quantity numeric not null,
+	status text not null,
 	constraint honey_batches_pkey primary key (batch_id),
 	constraint honey_batches_hive_id_fkey foreign KEY (hive_id) references hives (hive_id)
 ) TABLESPACE pg_default;
@@ -134,5 +136,9 @@ failed verification as valid.
 Endpoints:
 
 - `GET /api/health` checks that the API is running.
+- `POST /api/honey-batches` creates a harvested batch for a beekeeper's hive.
+- `GET /api/honey-batches` lists batches belonging to the logged-in beekeeper.
+- `PATCH /api/honey-batches/{batch_id}` advances a batch from `HARVESTED` to
+  `PROCESSED` or from `PROCESSED` to `DISTRIBUTED`.
 - `GET /api/auth/config` returns only the public browser configuration.
 - `GET /api/auth/session` validates a Supabase access token sent as a Bearer token.

@@ -10,6 +10,7 @@ router = APIRouter()
 FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"
 DASHBOARD_VIEWS = {
     "my-hives": "my-hives.html",
+    "my-harvest": "my-harvest.html",
     "alerts": "alerts.html",
     "reports": "reports.html",
     "ai-assistant": "ai-assistant.html",
