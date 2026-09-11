@@ -16,46 +16,50 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z" stroke="var(--gold-600)" stroke-width="1.6" stroke-linejoin="round"/></svg>
       HoneyChain
     </a>
-    <div class="nav-links">
-      <a href="/#how-it-works">How it works</a>
-      <a href="/#features">Platform</a>
-      <a href="/dashboard">Beekeeper dashboard</a>
-    </div>
-    <a href="/verify" class="nav-cta active">Verify a jar</a>
   </div>
 </nav>
 
 <div class="page-banner">
   <div class="container">
-    <span class="eyebrow-tag"><span class="dot"></span> Consumer verification</span>
-    <h1>Scan the jar. See its story.</h1>
-    <p>In the finished product this page opens automatically when a shopper scans the QR code on their honey jar — no app required. Below is a sample result for batch <strong>#HC-7734-IN</strong>.</p>
+    <div class="scan-frame">
+      <p>Simulated scan</p>
+      <div class="scan-box">
+        <svg width="130" height="130" viewBox="0 0 120 120">
+          <rect width="120" height="120" rx="10" fill="#FBF3E1"/>
+          <g fill="#2A1B0F">
+            <rect x="10" y="10" width="30" height="30"/><rect x="18" y="18" width="14" height="14" fill="#FBF3E1"/>
+            <rect x="80" y="10" width="30" height="30"/><rect x="88" y="18" width="14" height="14" fill="#FBF3E1"/>
+            <rect x="10" y="80" width="30" height="30"/><rect x="18" y="88" width="14" height="14" fill="#FBF3E1"/>
+            <rect x="50" y="10" width="8" height="8"/><rect x="66" y="10" width="8" height="8"/>
+            <rect x="50" y="26" width="8" height="8"/><rect x="58" y="42" width="8" height="8"/>
+            <rect x="74" y="50" width="8" height="8"/><rect x="90" y="50" width="8" height="8"/>
+            <rect x="106" y="58" width="8" height="8"/><rect x="50" y="58" width="8" height="8"/>
+            <rect x="50" y="74" width="8" height="8"/><rect x="66" y="82" width="8" height="8"/>
+            <rect x="82" y="90" width="8" height="8"/><rect x="98" y="98" width="8" height="8"/>
+            <rect x="66" y="98" width="8" height="8"/><rect x="90" y="74" width="8" height="8"/>
+          </g>
+        </svg>
+        <div class="scan-line"></div>
+      </div>
+      <p style="margin:0;">Batch #HC-7734-IN</p>
+    </div>
+    <div class="page-banner-copy">
+      <span class="eyebrow-tag"><span class="dot"></span> Consumer verification</span>
+      <h1>Scan the jar. See its story.</h1>
+      <p>In the finished product this page opens automatically when a shopper scans the QR code on their honey jar — no app required. Below is a sample result for batch <strong>#HC-7734-IN</strong>.</p>
+    </div>
   </div>
 </div>
 
 <div class="verify-shell">
-  <div class="scan-frame">
-    <p>Simulated scan</p>
-    <div class="scan-box">
-      <svg width="130" height="130" viewBox="0 0 120 120">
-        <rect width="120" height="120" rx="10" fill="#FBF3E1"/>
-        <g fill="#2A1B0F">
-          <rect x="10" y="10" width="30" height="30"/><rect x="18" y="18" width="14" height="14" fill="#FBF3E1"/>
-          <rect x="80" y="10" width="30" height="30"/><rect x="88" y="18" width="14" height="14" fill="#FBF3E1"/>
-          <rect x="10" y="80" width="30" height="30"/><rect x="18" y="88" width="14" height="14" fill="#FBF3E1"/>
-          <rect x="50" y="10" width="8" height="8"/><rect x="66" y="10" width="8" height="8"/>
-          <rect x="50" y="26" width="8" height="8"/><rect x="58" y="42" width="8" height="8"/>
-          <rect x="74" y="50" width="8" height="8"/><rect x="90" y="50" width="8" height="8"/>
-          <rect x="106" y="58" width="8" height="8"/><rect x="50" y="58" width="8" height="8"/>
-          <rect x="50" y="74" width="8" height="8"/><rect x="66" y="82" width="8" height="8"/>
-          <rect x="82" y="90" width="8" height="8"/><rect x="98" y="98" width="8" height="8"/>
-          <rect x="66" y="98" width="8" height="8"/><rect x="90" y="74" width="8" height="8"/>
-        </g>
-      </svg>
-      <div class="scan-line"></div>
+  <form class="batch-lookup" id="batch-lookup">
+    <label for="batch-id">Enter honey batch ID</label>
+    <div class="batch-lookup-row">
+      <input id="batch-id" name="batch-id" type="text" value="HC-7734-IN" placeholder="e.g. HC-7734-IN" required>
+      <button type="submit">Verify ID</button>
     </div>
-    <p style="margin:0;">Batch #HC-7734-IN</p>
-  </div>
+    <p id="lookup-status" class="lookup-status" role="status">Showing sample batch information.</p>
+  </form>
 
   <div class="verify-result">
     <div class="verify-badge">
@@ -63,12 +67,14 @@
       Authentic — confirmed on HoneyChain ledger
     </div>
 
-    <div class="trace-row"><span>Product</span><span>Wild Forest Honey, 500g</span></div>
-    <div class="trace-row"><span>Beekeeper</span><span>Lakshmi Beekeepers, Araku</span></div>
-    <div class="trace-row"><span>Hive cluster</span><span>Araku Valley, Andhra Pradesh</span></div>
-    <div class="trace-row"><span>Harvest date</span><span>14 Mar 2026</span></div>
-    <div class="trace-row"><span>Bottled on</span><span>22 Mar 2026</span></div>
-    <div class="trace-row"><span>Lab certification</span><span>KVIC-affiliated lab, passed</span></div>
+    <div class="trace-grid">
+      <div class="trace-row"><span>Product</span><span>Wild Forest Honey, 500g</span></div>
+      <div class="trace-row"><span>Beekeeper</span><span>Lakshmi Beekeepers, Araku</span></div>
+      <div class="trace-row"><span>Hive cluster</span><span>Araku Valley, Andhra Pradesh</span></div>
+      <div class="trace-row"><span>Harvest date</span><span>14 Mar 2026</span></div>
+      <div class="trace-row"><span>Bottled on</span><span>22 Mar 2026</span></div>
+      <div class="trace-row"><span>Lab certification</span><span>KVIC-affiliated lab, passed</span></div>
+    </div>
 
     <div class="lab-grid">
       <div class="lab-cell"><span>Moisture content</span><b>17.2%</b></div>
@@ -77,13 +83,20 @@
       <div class="lab-cell"><span>Colony health at harvest</span><b>Good</b></div>
     </div>
 
-    <div class="mini-chain">
-      <div class="mini-block"></div><div class="mini-block"></div><div class="mini-block"></div><div class="mini-block"></div><div class="mini-block"></div>
-      <span class="label">5 confirmations</span>
-    </div>
-    <div class="hash-box">0x8f1c...e274 → block 118,204 → hive HC-01-ARK07 → lab report LR-9931 → batch HC-7734-IN</div>
   </div>
 </div>
 
+<script>
+  const batchLookup = document.querySelector('#batch-lookup');
+  const batchIdInput = document.querySelector('#batch-id');
+  const lookupStatus = document.querySelector('#lookup-status');
+
+  batchLookup.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const batchId = batchIdInput.value.trim().toUpperCase();
+    batchIdInput.value = batchId;
+    lookupStatus.textContent = `Showing information for batch ${batchId}.`;
+  });
+</script>
 </body>
 </html>

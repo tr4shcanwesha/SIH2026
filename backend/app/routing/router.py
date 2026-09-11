@@ -1,13 +1,19 @@
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi import Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 from app.auth.auth import has_admin_session
 
 router = APIRouter()
 FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"
+DASHBOARD_VIEWS = {
+    "my-hives": "my-hives.html",
+    "alerts": "alerts.html",
+    "reports": "reports.html",
+    "ai-assistant": "ai-assistant.html",
+}
 
 
 @router.get("/", include_in_schema=False)
@@ -25,6 +31,30 @@ def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
     if not has_admin_session(request.cookies.get("honeychain_session")):
         return RedirectResponse(url="/auth", status_code=303)
     return FileResponse(FRONTEND_DIR / "dashboard" / "dashboard.html")
+
+
+@router.get("/dashboard/{view_name}", include_in_schema=False, response_model=None)
+def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectResponse:
+    if not has_admin_session(request.cookies.get("honeychain_session")):
+        return RedirectResponse(url="/auth", status_code=303)
+    try:
+        filename = DASHBOARD_VIEWS[view_name]
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Dashboard view not found") from error
+    dashboard_file = FRONTEND_DIR / "dashboard" / "dashboard.html"
+    view_file = FRONTEND_DIR / "dashboard" / filename
+    dashboard_html = dashboard_file.read_text(encoding="utf-8")
+    view_html = view_file.read_text(encoding="utf-8")
+    content_start = dashboard_html.index('<main class="dash-main" id="dashboard-content">')
+    content_end = dashboard_html.index("</main>", content_start)
+    rendered_html = (
+        dashboard_html[:content_start]
+        + '<main class="dash-main" id="dashboard-content">\n'
+        + view_html
+        + "\n"
+        + dashboard_html[content_end:]
+    )
+    return HTMLResponse(rendered_html)
 
 
 @router.get("/homepage", include_in_schema=False, response_model=None)
@@ -62,6 +92,11 @@ def logout_script() -> FileResponse:
 @router.get("/assets/dashboard/style.css", include_in_schema=False)
 def dashboard_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "dashboard" / "style.css")
+
+
+@router.get("/assets/dashboard/dashboard.js", include_in_schema=False)
+def dashboard_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dashboard" / "dashboard.js")
 
 
 @router.get("/assets/verify/style.css", include_in_schema=False)

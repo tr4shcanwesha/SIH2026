@@ -16,45 +16,68 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z" stroke="var(--gold-600)" stroke-width="1.6" stroke-linejoin="round"/></svg>
       HoneyChain
     </a>
-    <div class="nav-links">
-      <a href="/#how-it-works">How it works</a>
-      <a href="/#features">Platform</a>
-      <a href="/dashboard" class="active">Beekeeper dashboard</a>
+    <div class="profile-wrap">
+      <button class="profile-button" type="button" aria-label="Open profile menu" aria-expanded="false" aria-controls="profile-menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <circle cx="12" cy="8" r="3.5"/>
+          <path d="M5 21c.7-3.5 3.2-5.5 7-5.5s6.3 2 7 5.5"/>
+        </svg>
+      </button>
+      <div id="profile-menu" class="profile-menu" hidden>
+        <strong>Lakshmi Beekeepers</strong>
+        <span>Araku Valley Cluster</span>
+        <form class="signout-form" action="/api/auth/logout" method="post">
+          <button type="submit">Sign out</button>
+        </form>
+      </div>
     </div>
-    <form class="signout-form" action="/api/auth/logout" method="post">
-      <button class="nav-cta" type="submit">Sign out</button>
-    </form>
   </div>
 </nav>
 
 <div class="dash-shell">
   <aside class="dash-side">
-    <div class="side-link active">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    <a class="side-link active" href="/dashboard" data-view="overview">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+      </svg>
       Overview
-    </div>
-    <div class="side-link">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z"/></svg>
+    </a>
+
+    <a class="side-link" href="/dashboard/my-hives" data-view="my-hives">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 2L21 7V17L12 22L3 17V7L12 2Z"/>
+      </svg>
       My hives
-    </div>
-    <div class="side-link">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19h16M4 15l4-5 4 3 5-7 3 4"/></svg>
-      Yield forecast
-    </div>
-    <div class="side-link">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="6" height="6"/><rect x="15" y="8" width="6" height="6"/><rect x="9" y="2" width="6" height="6"/><path d="M12 8V6M9 11H6v-3M15 11h3v-3"/></svg>
-      Batches &amp; ledger
-    </div>
-    <div class="side-link">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.3 2.9l-7 12.1A1.8 1.8 0 0 0 4.9 18h14.2a1.8 1.8 0 0 0 1.6-2.9l-7-12.1a1.8 1.8 0 0 0-3.1 0z"/><path d="M12 9v4M12 16h.01"/></svg>
+    </a>
+
+    <a class="side-link" href="/dashboard/alerts" data-view="alerts">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M10.3 2.9l-7 12.1A1.8 1.8 0 0 0 4.9 18h14.2a1.8 1.8 0 0 0 1.6-2.9l-7-12.1a1.8 1.8 0 0 0-3.1 0z"/>
+        <path d="M12 9v4M12 16h.01"/>
+      </svg>
       Alerts
-    </div>
-    <h5>Account</h5>
-    <div class="side-link">Lakshmi Beekeepers</div>
-    <div class="side-link">Araku Valley Cluster</div>
+    </a>
+
+    <a class="side-link" href="/dashboard/reports" data-view="reports">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M4 19h16M4 15l4-5 4 3 5-7 3 4"/>
+      </svg>
+      Reports
+    </a>
+
+    <a class="side-link" href="/dashboard/ai-assistant" data-view="ai-assistant">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2z"/>
+        <path d="M9 21h6M10 18h4"/>
+      </svg>
+      AI assistant
+    </a>
   </aside>
 
-  <main class="dash-main">
+  <main class="dash-main" id="dashboard-content">
     <div class="dash-top">
       <div>
         <h2>Good morning, Lakshmi</h2>
@@ -205,6 +228,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/assets/auth/logout.js"></script>
+<script src="/assets/dashboard/dashboard.js"></script>
 
 </body>
 </html>
