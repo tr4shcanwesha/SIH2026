@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routes.routes import router as api_router
+from app.routing.routes import router as api_router
 
 load_dotenv()
 
