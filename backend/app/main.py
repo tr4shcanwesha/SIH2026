@@ -9,7 +9,7 @@ from app.routing.routes import router as api_router
 
 load_dotenv()
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://honeychain-icix.onrender.com")
 PORT = int(os.getenv("PORT", "8000"))
 
 app = FastAPI(title="HoneyChain API", version="0.1.0")
