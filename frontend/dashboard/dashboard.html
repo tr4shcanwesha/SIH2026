@@ -227,6 +227,25 @@
   </main>
 </div>
 
+<div class="harvest-entry-modal" id="harvest-entry-modal" hidden>
+  <div class="harvest-entry-backdrop" data-close-harvest-entry></div>
+  <form class="harvest-entry-dialog" id="harvest-entry-form">
+    <button class="harvest-entry-close" type="button" data-close-harvest-entry aria-label="Close harvest form">×</button>
+    <h3>Record harvest</h3>
+    <p>Enter the details for this honey batch.</p>
+    <label for="harvest-quantity">Quantity (kg)</label>
+    <input id="harvest-quantity" name="quantity" type="number" min="0.01" step="0.01" required>
+    <label for="harvest-honey-type">Honey Type</label>
+    <input id="harvest-honey-type" name="honey_type" type="text" maxlength="100" required>
+    <p class="harvest-entry-error" id="harvest-entry-error" role="alert"></p>
+    <div class="harvest-entry-actions">
+      <button type="button" class="harvest-entry-cancel" data-close-harvest-entry>Cancel</button>
+      <button type="submit" class="harvest-entry-submit">Done</button>
+    </div>
+  </form>
+</div>
+<div class="harvest-toast" id="harvest-toast" role="status" aria-live="polite" hidden></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script src="/assets/auth/session.js"></script>
