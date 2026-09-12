@@ -74,7 +74,8 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
   height:72px;
 }
 .brand{display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:600; font-size:1.28rem; color:var(--comb-900);}
-.brand svg{width:30px;height:30px;flex:none;}
+.brand img{width:30px;height:30px;flex:none; object-fit:contain; display:block;}
+.brand span{display:inline-flex; align-items:center;}
 .nav-links{display:flex; align-items:center; gap:34px;}
 .nav-links a{
   font-size:0.96rem; color:var(--ink-soft); font-weight:500;
