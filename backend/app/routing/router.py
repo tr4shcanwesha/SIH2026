@@ -171,6 +171,11 @@ def dashboard_jar_image() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "src" / "images" / "jar.png")
 
 
+@router.get("/assets/logo.png", include_in_schema=False)
+def site_logo() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "src" / "images" / "logo.png")
+
+
 @router.get("/assets/verify/style.css", include_in_schema=False)
 def verify_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "style.css")
