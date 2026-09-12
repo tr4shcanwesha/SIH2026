@@ -16,7 +16,7 @@ async function startGoogleSignIn() {
     );
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: new URL('/auth', document.baseURI).href }
+      options: { redirectTo: new URL('/auth', window.location.origin).href }
     });
 
     if (error) throw error;
