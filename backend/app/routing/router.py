@@ -114,6 +114,36 @@ def dashboard_script() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "dashboard" / "dashboard.js")
 
 
+@router.get("/assets/dashboard/db.png", include_in_schema=False)
+def dashboard_db_image() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "src" / "images" / "db.png")
+
+
+@router.get("/assets/dashboard/hive.png", include_in_schema=False)
+def dashboard_hive_image() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "src" / "images" / "hive.png")
+
+
+@router.get("/assets/dashboard/harvest.png", include_in_schema=False)
+def dashboard_harvest_image() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "src" / "images" / "harvest.png")
+
+
+@router.get("/assets/dashboard/processed.png", include_in_schema=False)
+def dashboard_processed_image() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "src" / "images" / "processed.png")
+
+
+@router.get("/assets/dashboard/distributed.png", include_in_schema=False)
+def dashboard_distributed_image() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "src" / "images" / "distributed.png")
+
+
+@router.get("/assets/dashboard/jar.png", include_in_schema=False)
+def dashboard_jar_image() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "src" / "images" / "jar.png")
+
+
 @router.get("/assets/verify/style.css", include_in_schema=False)
 def verify_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "style.css")

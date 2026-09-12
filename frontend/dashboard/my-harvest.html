@@ -1,11 +1,23 @@
-<div class="dash-top">
-  <div>
-    <h2>My Harvest</h2>
-    <p style="margin:0; color:var(--ink-soft); font-size:0.92rem;">Track every batch from harvest to distribution.</p>
+<div class="harvest-page-header">
+  <div class="harvest-page-title">
+    <span class="harvest-title-hex" aria-hidden="true"></span>
+    <div>
+      <h2>My Harvest</h2>
+      <p>Track and manage your honey batches from hive to market.</p>
+    </div>
   </div>
-  <div class="harvest-toolbar">
-    <span class="select-fake" id="harvest-summary">0 batches</span>
-  </div>
+  <span class="select-fake harvest-total" id="harvest-summary">0 batches</span>
 </div>
 
-<div class="harvest-list" id="harvest-list" aria-live="polite"></div>
+<div class="harvest-featured" id="harvest-featured" aria-live="polite"></div>
+
+<div class="harvest-batches-panel">
+  <div class="harvest-batches-head">
+    <div class="harvest-jar-icon" aria-hidden="true"><img src="/assets/dashboard/jar.png" alt=""></div>
+    <div>
+      <h3>Your Batches</h3>
+      <p>All your honey batches and their current progress.</p>
+    </div>
+  </div>
+  <div class="harvest-list" id="harvest-list" aria-live="polite"></div>
+</div>

@@ -3,6 +3,14 @@ const profileMenu = document.querySelector('#profile-menu');
 const notificationToggle = document.querySelector('#notification-toggle');
 const notificationMenu = document.querySelector('#notification-menu');
 let harvestBatches = [];
+let harvestHives = new Map();
+let harvestCarouselOffset = 0;
+let harvestCarouselCurrent = 0;
+let harvestCarouselDragging = false;
+let harvestCarouselPointerStart = 0;
+let harvestCarouselStartIndex = 0;
+let harvestCarouselPointerMoved = false;
+let harvestCarouselAnimating = false;
 const harvestCooldownMs = 60 * 1000;
 const harvestCooldownStorageKey = 'honeychain-harvest-cooldowns';
 const harvestOrderStorageKey = 'honeychain-harvest-order';
@@ -34,11 +42,16 @@ const saveHarvestOrder = (order) => {
 };
 
 const loadHarvestBatches = async () => {
-  const response = await fetch('/api/honey-batches');
-  if (!response.ok) {
+  const [batchResponse, hiveResponse] = await Promise.all([
+    fetch('/api/honey-batches'),
+    fetch('/api/hives'),
+  ]);
+  if (!batchResponse.ok || !hiveResponse.ok) {
     throw new Error('Unable to load harvest batches.');
   }
-  const fetchedBatches = await response.json();
+  const fetchedBatches = await batchResponse.json();
+  const fetchedHives = await hiveResponse.json();
+  harvestHives = new Map(fetchedHives.map((hive) => [hive.hive_id, hive]));
   const fetchedById = new Map(fetchedBatches.map((batch) => [batch.batch_id, batch]));
   const storedOrder = getHarvestOrder().filter((batchId) => fetchedById.has(batchId));
   const newBatchIds = fetchedBatches
@@ -47,6 +60,11 @@ const loadHarvestBatches = async () => {
   const order = [...newBatchIds, ...storedOrder];
   saveHarvestOrder(order);
   harvestBatches = order.map((batchId) => fetchedById.get(batchId));
+  harvestCarouselOffset = Math.min(
+    harvestCarouselOffset,
+    Math.max(0, harvestBatches.length - 1)
+  );
+  harvestCarouselCurrent = harvestCarouselOffset;
 };
 
 const addHarvestBatch = async (harvestButton) => {
@@ -106,6 +124,7 @@ const restoreHarvestCooldown = (harvestButton) => {
 const renderHarvestBatches = () => {
   const harvestList = document.querySelector('#harvest-list');
   const harvestSummary = document.querySelector('#harvest-summary');
+  const featuredList = document.querySelector('#harvest-featured');
   if (!harvestList) {
     return;
   }
@@ -113,37 +132,217 @@ const renderHarvestBatches = () => {
   const progressByStatus = { HARVESTED: 25, PROCESSED: 70, DISTRIBUTED: 100 };
   const labelByStatus = { HARVESTED: 'HARVESTED', PROCESSED: 'PROCESSED', DISTRIBUTED: 'DISTRIBUTED' };
   const batches = harvestBatches;
-  harvestList.innerHTML = batches.length ? batches.map((batch) => {
+  const statusClass = {
+    HARVESTED: 'status-harvested',
+    PROCESSED: 'status-processed',
+    DISTRIBUTED: 'status-distributed',
+  };
+  const batchStatusMarkup = (batchStatus) => `
+    <span class="harvest-status ${statusClass[batchStatus] || 'status-harvested'}">
+      <span class="harvest-status-dot"></span>${labelByStatus[batchStatus] || batchStatus}
+    </span>`;
+  const actionMarkup = (batch, batchStatus) => batchStatus === 'HARVESTED'
+    ? `<button class="harvest-reference-action action-amber" type="button" data-process-batch="${batch.batch_id}">Mark Processed <span>›</span></button>`
+    : batchStatus === 'PROCESSED'
+      ? `<button class="harvest-reference-action action-outline" type="button" data-distribute-batch="${batch.batch_id}">Mark Distributed <span>›</span></button>`
+      : '<button class="harvest-reference-action action-done" type="button" disabled>Completed <span>✓</span></button>';
+  const batchMarkup = (batch) => {
     const batchStatus = String(batch.status).toUpperCase();
     const progress = progressByStatus[batchStatus] || 25;
-    const nextAction = batchStatus === 'HARVESTED'
-      ? `<button class="harvest-action-button" type="button" data-process-batch="${batch.batch_id}">Process</button>`
-      : batchStatus === 'PROCESSED'
-        ? `<button class="harvest-action-button" type="button" data-distribute-batch="${batch.batch_id}">Distribute</button>`
-        : '<span class="status-pill pill-good">Complete</span>';
     return `
-      <article class="harvest-card">
-        <div class="harvest-card-head">
-          <div><h3>${batch.hive_id}</h3><p>Batch created ${new Date(batch.harvest_date).toLocaleDateString()}</p></div>
-          <span class="status-pill ${batchStatus === 'DISTRIBUTED' ? 'pill-good' : 'pill-warn'}">${labelByStatus[batchStatus]}</span>
+      <article class="harvest-reference-row">
+        <div class="harvest-reference-id">
+          <div class="harvest-reference-hex"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
+          <div><strong>${batch.hive_id}</strong><small>Batch created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
         </div>
-        <div class="harvest-progress-meta"><span>Progress</span><b>${progress}%</b></div>
-        <div class="harvest-progress"><span style="width:${progress}%"></span></div>
-        <div class="harvest-card-action">${nextAction}</div>
+        ${batchStatusMarkup(batchStatus)}
+        <div class="harvest-reference-progress">
+          <div class="harvest-reference-track"><span class="progress-${batchStatus.toLowerCase()}" style="width:${progress}%"></span></div>
+          <small>${progress}%</small>
+        </div>
+        ${actionMarkup(batch, batchStatus)}
+        <button class="harvest-more-button" type="button" aria-label="More batch options">⋮</button>
       </article>`;
-  }).join('') : '<p class="hive-empty">No harvest batches yet. Use Harvest on a hive to create one.</p>';
+  };
+  harvestList.innerHTML = batches.length
+    ? batches.map(batchMarkup).join('')
+    : '<p class="hive-empty">No harvest batches yet. Use Harvest on a hive to create one.</p>';
+  if (featuredList) {
+    const carouselCardMarkup = (batch, index) => {
+      const batchStatus = String(batch.status).toUpperCase();
+      const imageByStatus = {
+        HARVESTED: 'harvest',
+        PROCESSED: 'processed',
+        DISTRIBUTED: 'distributed',
+      };
+      const statusImage = imageByStatus[batchStatus] || 'harvest';
+      const hive = harvestHives.get(batch.hive_id) || {};
+      return `<article class="harvest-featured-card" data-carousel-index="${index}" tabindex="0">
+        <div class="harvest-card-icon"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
+        <div class="harvest-card-body">
+          ${batchStatusMarkup(batchStatus)}
+          <h3>${batch.hive_id}</h3>
+          <small>Location <b>${hive.location || 'Not available'}</b></small>
+          <small>Species <b>${hive.bee_species || 'Not available'}</b></small>
+          <small>Hive type <b>${hive.hive_type || 'Not available'}</b></small>
+          <small>Harvested <b>${new Date(batch.harvest_date).toLocaleDateString()}</b></small>
+        </div>
+        <div class="harvest-card-thumb"><img src="/assets/dashboard/${statusImage}.png" alt="${batchStatus}"></div>
+      </article>`;
+    };
+    featuredList.innerHTML = batches.length ? `
+      <div class="harvest-carousel">
+        <button class="harvest-carousel-arrow" type="button" data-carousel-direction="-1" aria-label="Show previous batches" ${batches.length < 2 ? 'disabled' : ''}>‹</button>
+        <div class="harvest-carousel-viewport">
+          <div class="harvest-featured-cards">
+            ${batches.map((batch, index) => carouselCardMarkup(batch, index)).join('')}
+          </div>
+        </div>
+        <button class="harvest-carousel-arrow" type="button" data-carousel-direction="1" aria-label="Show next batches" ${batches.length < 2 ? 'disabled' : ''}>›</button>
+      </div>` : '';
+    featuredList.querySelectorAll('[data-carousel-direction]').forEach((arrow) => {
+      arrow.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        moveHarvestCarousel(Number(arrow.dataset.carouselDirection));
+      });
+    });
+  }
+  renderHarvestCarousel();
   if (harvestSummary) {
     harvestSummary.textContent = `${batches.length} batch${batches.length === 1 ? '' : 'es'}`;
   }
 };
 
+const renderHarvestCarousel = () => {
+  const viewport = document.querySelector('.harvest-carousel-viewport');
+  const track = document.querySelector('.harvest-featured-cards');
+  if (!viewport || !track || !harvestBatches.length) {
+    return;
+  }
+
+  const spacing = viewport.clientWidth < 560
+    ? Math.max(190, viewport.clientWidth * 0.62)
+    : 300;
+  track.style.setProperty('--carousel-spacing', `${spacing}px`);
+  track.querySelectorAll('.harvest-featured-card').forEach((card, index) => {
+    const difference = ((index - harvestCarouselCurrent) % harvestBatches.length + harvestBatches.length) % harvestBatches.length;
+    const signedDifference = difference > harvestBatches.length / 2
+      ? difference - harvestBatches.length
+      : difference;
+    const absoluteDifference = Math.abs(signedDifference);
+    const scale = Math.max(.72, 1 - absoluteDifference * .16);
+    const opacity = Math.max(0, 1 - absoluteDifference * .42);
+    card.style.transform = `translate(${signedDifference * spacing}px, -50%) scale(${scale})`;
+    card.style.opacity = opacity;
+    card.style.zIndex = String(Math.round(100 - absoluteDifference * 10));
+    card.classList.toggle('carousel-active', absoluteDifference < .5);
+    card.classList.toggle('carousel-dragging', harvestCarouselDragging);
+    card.style.pointerEvents = absoluteDifference < 1.5 ? 'auto' : 'none';
+  });
+};
+
+const moveHarvestCarousel = (direction) => {
+  if (harvestBatches.length < 2 || harvestCarouselAnimating) {
+    return;
+  }
+  const track = document.querySelector('.harvest-featured-cards');
+  if (!track) {
+    return;
+  }
+  harvestCarouselAnimating = true;
+  harvestCarouselDragging = false;
+  const startIndex = Math.round(harvestCarouselCurrent);
+  const targetIndex = startIndex + direction;
+  harvestCarouselCurrent = startIndex;
+  renderHarvestCarousel();
+  track.offsetWidth;
+  window.requestAnimationFrame(() => {
+    harvestCarouselCurrent = targetIndex;
+    harvestCarouselOffset = ((targetIndex % harvestBatches.length) + harvestBatches.length) % harvestBatches.length;
+    renderHarvestCarousel();
+    window.setTimeout(() => {
+      harvestCarouselAnimating = false;
+    }, 500);
+  });
+};
+
+const getHarvestCarouselDifference = (targetIndex, currentIndex) => {
+  const count = harvestBatches.length;
+  let difference = (targetIndex - currentIndex) % count;
+  if (difference > count / 2) {
+    difference -= count;
+  }
+  if (difference < -count / 2) {
+    difference += count;
+  }
+  return difference;
+};
+
 const initializeHarvestPage = () => {
   const harvestList = document.querySelector('#harvest-list');
+  const featuredList = document.querySelector('#harvest-featured');
   if (!harvestList || harvestList.dataset.initialized === 'true') {
     renderHarvestBatches();
     return;
   }
   harvestList.dataset.initialized = 'true';
+  featuredList?.addEventListener('click', (event) => {
+    const card = event.target.closest('[data-carousel-index]');
+    if (!card) {
+      return;
+    }
+    if (harvestCarouselPointerMoved) {
+      harvestCarouselPointerMoved = false;
+      return;
+    }
+    const targetIndex = Number(card.dataset.carouselIndex);
+    harvestCarouselCurrent += getHarvestCarouselDifference(targetIndex, harvestCarouselCurrent);
+    harvestCarouselOffset = targetIndex;
+    renderHarvestBatches();
+  });
+  featuredList?.addEventListener('pointerdown', (event) => {
+    if (event.target.closest('[data-carousel-direction]')) {
+      return;
+    }
+    harvestCarouselDragging = true;
+    harvestCarouselPointerMoved = false;
+    harvestCarouselPointerStart = event.clientX;
+    harvestCarouselStartIndex = harvestCarouselCurrent;
+    featuredList.setPointerCapture?.(event.pointerId);
+    renderHarvestCarousel();
+  });
+  featuredList?.addEventListener('pointermove', (event) => {
+    if (!harvestCarouselDragging || harvestBatches.length < 2) {
+      return;
+    }
+    const viewport = document.querySelector('.harvest-carousel-viewport');
+    const spacing = viewport?.clientWidth < 560 ? Math.max(190, (viewport?.clientWidth || 0) * .62) : 300;
+    const distance = event.clientX - harvestCarouselPointerStart;
+    if (Math.abs(distance) > 4) {
+      harvestCarouselPointerMoved = true;
+    }
+    harvestCarouselCurrent = harvestCarouselStartIndex - distance / spacing;
+    renderHarvestCarousel();
+  });
+  const finishCarouselDrag = (event) => {
+    if (!harvestCarouselDragging) {
+      return;
+    }
+    harvestCarouselDragging = false;
+    const viewport = document.querySelector('.harvest-carousel-viewport');
+    const spacing = viewport?.clientWidth < 560 ? Math.max(190, (viewport?.clientWidth || 0) * .62) : 300;
+    const distance = event.clientX - harvestCarouselPointerStart;
+    harvestCarouselCurrent = Math.round(harvestCarouselStartIndex - distance / spacing);
+    harvestCarouselOffset = ((harvestCarouselCurrent % harvestBatches.length) + harvestBatches.length) % harvestBatches.length;
+    if (harvestCarouselPointerMoved) {
+      renderHarvestBatches();
+    } else {
+      renderHarvestCarousel();
+    }
+  };
+  featuredList?.addEventListener('pointerup', finishCarouselDrag);
+  featuredList?.addEventListener('pointercancel', finishCarouselDrag);
   harvestList.addEventListener('click', async (event) => {
     const processButton = event.target.closest('[data-process-batch]');
     const distributeButton = event.target.closest('[data-distribute-batch]');
