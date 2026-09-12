@@ -95,6 +95,12 @@
   const timeline = document.querySelector('#timeline');
   const bannerBatchId = document.querySelector('#banner-batch-id');
   let currentBlocks = [];
+  const timelineLabels = {
+    BATCH_CREATED: 'Harvested',
+    STATUS_PROCESSED: 'Processed',
+    STATUS_DISTRIBUTED: 'Distributed',
+  };
+  const lifecycleEvents = ['BATCH_CREATED', 'STATUS_PROCESSED', 'STATUS_DISTRIBUTED'];
 
   const renderBatch = (payload) => {
     const verification = payload.verification;
@@ -116,7 +122,7 @@
     const batch = payload.batch;
     const hive = payload.hive;
     const beekeeper = payload.beekeeper;
-    currentBlocks = payload.blocks;
+    currentBlocks = Array.isArray(payload.blocks) ? payload.blocks : [];
     verifyBadge.textContent = 'Authentic — confirmed on HoneyChain ledger';
     verifyBadge.classList.remove('verification-failed');
     batchDetails.innerHTML = [
@@ -144,7 +150,7 @@
     ].map(([label, value]) => `<div class="trace-row"><span>${label}</span><span>${value ?? 'Not provided'}</span></div>`).join('');
     timeline.hidden = true;
     timelineButton.setAttribute('aria-expanded', 'false');
-    timelineButton.textContent = `Show blockchain timeline (${currentBlocks.length} events)`;
+    timelineButton.textContent = `Show blockchain timeline (${lifecycleEvents.length} stages)`;
   };
 
   const loadBatch = async (batchId) => {
@@ -171,14 +177,21 @@
     const isOpen = !timeline.hidden;
     timeline.hidden = isOpen;
     timelineButton.setAttribute('aria-expanded', String(!isOpen));
-    timelineButton.textContent = `${isOpen ? 'Show' : 'Hide'} blockchain timeline (${currentBlocks.length} events)`;
+    timelineButton.textContent = `${isOpen ? 'Show' : 'Hide'} blockchain timeline (${lifecycleEvents.length} stages)`;
     if (!isOpen) {
-      timeline.innerHTML = currentBlocks.length ? currentBlocks.map((block, index) => `
-        <article class="timeline-event">
-          <div class="timeline-marker">${index + 1}</div>
-          <div><strong>${block.event_type}</strong><time>${new Date(block.timestamp).toLocaleString()}</time>
-          <div class="hash-box">Data: ${block.data_hash}<br>Block: ${block.block_hash}<br>Previous: ${block.previous_hash || 'GENESIS'}</div></div>
-        </article>`).join('') : '<p>No blockchain events recorded.</p>';
+      timeline.innerHTML = lifecycleEvents.map((eventType, index) => {
+        const block = currentBlocks.find((item) => item.event_type === eventType);
+        return block
+          ? `<article class="timeline-event">
+              <div class="timeline-marker">${index + 1}</div>
+              <div><strong>${timelineLabels[eventType]}</strong><time>${new Date(block.timestamp).toLocaleString()}</time>
+              <div class="hash-box">Data: ${block.data_hash}<br>Block: ${block.block_hash}<br>Previous: ${block.previous_hash || 'GENESIS'}</div></div>
+            </article>`
+          : `<article class="timeline-event timeline-event-pending">
+              <div class="timeline-marker">${index + 1}</div>
+              <div><strong>${timelineLabels[eventType]}</strong><time>Not recorded yet</time></div>
+            </article>`;
+      }).join('');
     }
   });
 

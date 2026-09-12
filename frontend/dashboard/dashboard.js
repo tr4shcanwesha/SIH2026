@@ -179,19 +179,19 @@ const renderHarvestBatches = () => {
           <div class="harvest-reference-hex"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
           <div><strong>${batch.hive_id}</strong><small>Batch ${batch.batch_id} · created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
         </div>
-        ${batchStatusMarkup(batchStatus)}
+        <div class="batch-verification">
+          <div class="batch-qr" data-qr-url="/verify/${batch.batch_id}" aria-label="Verification QR code"></div>
+          ${batchStatusMarkup(batchStatus)}
+          <a class="batch-verify-button" href="/verify/${batch.batch_id}">Verify this batch</a>
+        </div>
         <div class="harvest-reference-progress">
           <div class="harvest-reference-track"><span class="progress-${batchStatus.toLowerCase()}" style="width:${progress}%"></span></div>
           <small>${progress}%</small>
         </div>
         ${actionMarkup(batch, batchStatus)}
         <button class="harvest-more-button" type="button" aria-label="More batch options">⋮</button>
-        <div class="batch-qr-row">
-          <div class="batch-qr" data-qr-url="${batch.verification_url || `/verify/${batch.batch_id}`}" aria-label="Verification QR code"></div>
-          <a class="batch-qr-link" href="${batch.verification_url || `/verify/${batch.batch_id}`}" target="_blank" rel="noreferrer">Verify this batch</a>
-        </div>
       </article>
-      </article>`;
+      `;
   };
   harvestList.innerHTML = batches.length
     ? batches.map(batchMarkup).join('')
@@ -253,6 +253,39 @@ const renderHarvestBatches = () => {
       });
     }
   });
+  document.querySelectorAll('.batch-qr').forEach((element) => {
+    element.setAttribute('role', 'button');
+    element.setAttribute('tabindex', '0');
+    element.addEventListener('click', () => openQrLightbox(element));
+    element.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openQrLightbox(element);
+      }
+    });
+  });
+};
+
+const openQrLightbox = (qrElement) => {
+  const qrLightbox = document.querySelector('#qr-lightbox');
+  const qrImage = document.querySelector('#qr-lightbox-image');
+  const qrCanvas = qrElement.querySelector('canvas');
+  const qrSource = qrCanvas?.toDataURL('image/png') || qrElement.querySelector('img')?.src;
+  if (!qrLightbox || !qrImage || !qrSource) {
+    return;
+  }
+  qrImage.src = qrSource;
+  qrLightbox.hidden = false;
+  document.body.classList.add('qr-lightbox-open');
+};
+
+const closeQrLightbox = () => {
+  const qrLightbox = document.querySelector('#qr-lightbox');
+  if (!qrLightbox) {
+    return;
+  }
+  qrLightbox.hidden = true;
+  document.body.classList.remove('qr-lightbox-open');
 };
 
 const renderHarvestCarousel = () => {
@@ -265,7 +298,6 @@ const renderHarvestCarousel = () => {
   const spacing = viewport.clientWidth < 560
     ? Math.max(190, viewport.clientWidth * 0.62)
     : 300;
-  track.style.setProperty('--carousel-spacing', `${spacing}px`);
   track.querySelectorAll('.harvest-featured-card').forEach((card, index) => {
     const difference = ((index - harvestCarouselCurrent) % harvestBatches.length + harvestBatches.length) % harvestBatches.length;
     const signedDifference = difference > harvestBatches.length / 2
@@ -308,18 +340,6 @@ const moveHarvestCarousel = (direction) => {
   });
 };
 
-const getHarvestCarouselDifference = (targetIndex, currentIndex) => {
-  const count = harvestBatches.length;
-  let difference = (targetIndex - currentIndex) % count;
-  if (difference > count / 2) {
-    difference -= count;
-  }
-  if (difference < -count / 2) {
-    difference += count;
-  }
-  return difference;
-};
-
 const initializeHarvestPage = () => {
   const harvestList = document.querySelector('#harvest-list');
   const featuredList = document.querySelector('#harvest-featured');
@@ -328,6 +348,14 @@ const initializeHarvestPage = () => {
     return;
   }
   harvestList.dataset.initialized = 'true';
+  document.querySelectorAll('[data-close-qr]').forEach((element) => {
+    element.addEventListener('click', closeQrLightbox);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeQrLightbox();
+    }
+  });
   featuredList?.addEventListener('click', (event) => {
     const card = event.target.closest('[data-carousel-index]');
     if (!card) {
@@ -338,9 +366,17 @@ const initializeHarvestPage = () => {
       return;
     }
     const targetIndex = Number(card.dataset.carouselIndex);
-    harvestCarouselCurrent += getHarvestCarouselDifference(targetIndex, harvestCarouselCurrent);
-    harvestCarouselOffset = targetIndex;
-    renderHarvestBatches();
+    const count = harvestBatches.length;
+    let difference = (targetIndex - harvestCarouselCurrent) % count;
+    if (difference > count / 2) {
+      difference -= count;
+    }
+    if (difference < -count / 2) {
+      difference += count;
+    }
+    harvestCarouselCurrent += difference;
+    harvestCarouselOffset = ((Math.round(harvestCarouselCurrent) % count) + count) % count;
+    renderHarvestCarousel();
   });
   featuredList?.addEventListener('pointerdown', (event) => {
     if (event.target.closest('[data-carousel-direction]')) {

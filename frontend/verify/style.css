@@ -141,6 +141,8 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
 .timeline{margin-top:20px;border-top:1px solid var(--line);}
 .timeline-event{display:grid;grid-template-columns:34px 1fr;gap:12px;padding:18px 0;border-bottom:1px solid var(--line);}
 .timeline-marker{width:28px;height:28px;border-radius:50%;background:var(--verified-teal);color:var(--wax-50);display:grid;place-items:center;font-size:.76rem;font-weight:700;}
+.timeline-event-pending .timeline-marker{background:var(--ink-soft);}
+.timeline-event-pending strong,.timeline-event-pending time{color:var(--ink-soft);}
 .timeline-event strong{display:block;color:var(--comb-900);font-size:.9rem;}
 .timeline-event time{display:block;color:var(--ink-soft);font-size:.78rem;margin-top:3px;}
 .timeline-event .hash-box{margin-top:10px;}

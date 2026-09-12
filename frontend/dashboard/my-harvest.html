@@ -13,11 +13,20 @@
 
 <div class="harvest-batches-panel">
   <div class="harvest-batches-head">
-    <div class="harvest-jar-icon" aria-hidden="true"><img src="/assets/dashboard/jar.png" alt=""></div>
     <div>
       <h3>Your Batches</h3>
       <p>All your honey batches and their current progress.</p>
     </div>
   </div>
   <div class="harvest-list" id="harvest-list" aria-live="polite"></div>
+</div>
+
+<div class="qr-lightbox" id="qr-lightbox" hidden>
+  <div class="qr-lightbox-backdrop" data-close-qr></div>
+  <div class="qr-lightbox-dialog" role="dialog" aria-modal="true" aria-labelledby="qr-lightbox-title">
+    <button class="qr-lightbox-close" type="button" data-close-qr aria-label="Close enlarged QR code">×</button>
+    <h3 id="qr-lightbox-title">Verify this batch</h3>
+    <img id="qr-lightbox-image" alt="Enlarged batch verification QR code">
+    <p>Scan this QR code to verify the batch.</p>
+  </div>
 </div>
