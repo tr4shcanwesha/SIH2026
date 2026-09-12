@@ -19,7 +19,14 @@ $env:SUPABASE_URL = "https://your-project-ref.supabase.co"
 $env:SUPABASE_ANON_KEY = "your-supabase-anon-key"
 $env:SUPABASE_SERVICE_ROLE_KEY = "your-supabase-service-role-key"
 $env:FRONTEND_URL = "http://localhost:8000"
-uvicorn app.main:app --reload --port 8000
+$env:PORT = "8000"
+uvicorn app.main:app --reload --host 0.0.0.0 --port $env:PORT
+```
+
+For Render, do not hardcode `8000`; set the Render service's `PORT` environment variable automatically and start the app with:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
 ```
 
 Enable Google under Supabase Dashboard > Authentication > Providers > Google, and add the Supabase callback URL shown there. Add the frontend auth URL to the provider redirect allow list:
