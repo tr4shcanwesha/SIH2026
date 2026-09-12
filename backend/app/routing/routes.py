@@ -1,12 +1,20 @@
-import secrets
-from datetime import date
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from app.auth.auth import get_session_beekeeper_id, router as auth_router, supabase
+from app.auth.auth import active_sessions, get_session_beekeeper_id, router as auth_router
 from app.routing.router import router as page_router
+from app.services.batches import (
+    add_hive as add_hive_record,
+    create_batch,
+    list_batches,
+    list_hives as list_hive_records,
+    remove_hive as remove_hive_record,
+    update_batch_status,
+)
+from app.services.blockchain import get_batch_verification
+from app.services.beekeepers import delete_beekeeper_account, get_beekeeper_profile, update_beekeeper_profile
 
 router = APIRouter()
 
@@ -22,7 +30,6 @@ class HiveCreate(BaseModel):
 class HoneyBatchCreate(BaseModel):
     hive_id: str
     honey_type: str = "Wild Forest Honey"
-    harvest_date: date
     quantity: float = Field(gt=0)
 
 
@@ -30,9 +37,35 @@ class HoneyBatchStatusUpdate(BaseModel):
     status: Literal["PROCESSED", "DISTRIBUTED"]
 
 
+class BeekeeperProfileUpdate(BaseModel):
+    name: str = Field(min_length=1)
+    phone: str = Field(min_length=1)
+    location: str = Field(min_length=1)
+
+
 @router.get("/api/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@router.get("/api/profile")
+def profile(request: Request) -> dict[str, Any]:
+    return get_beekeeper_profile(current_beekeeper_id(request))
+
+
+@router.patch("/api/profile")
+def update_profile(profile_update: BeekeeperProfileUpdate, request: Request) -> dict[str, Any]:
+    beekeeper_id = current_beekeeper_id(request)
+    update_beekeeper_profile(beekeeper_id, profile_update.model_dump())
+    return get_beekeeper_profile(beekeeper_id)
+
+
+@router.delete("/api/profile", status_code=204)
+def delete_profile(request: Request) -> None:
+    session_id = request.cookies.get("honeychain_session")
+    beekeeper_id = current_beekeeper_id(request)
+    delete_beekeeper_account(beekeeper_id)
+    active_sessions.pop(session_id, None)
 
 
 def current_beekeeper_id(request: Request) -> str:
@@ -45,80 +78,30 @@ def current_beekeeper_id(request: Request) -> str:
 @router.get("/api/hives")
 def list_hives(request: Request) -> list[dict[str, Any]]:
     beekeeper_id = current_beekeeper_id(request)
-    response = supabase.table("hives").select("*").eq("beekeeper_id", beekeeper_id).order("hive_id").execute()
-    return response.data or []
+    return list_hive_records(beekeeper_id)
 
 
 @router.post("/api/hives", status_code=201)
 def add_hive(hive: HiveCreate, request: Request) -> dict[str, Any]:
     beekeeper_id = current_beekeeper_id(request)
-    payload = hive.model_dump()
-    payload["hive_id"] = generate_unique_hive_id()
-    payload["beekeeper_id"] = beekeeper_id
-    response = supabase.table("hives").insert(payload).execute()
-    if not response.data:
-        raise HTTPException(status_code=400, detail="Hive could not be added")
-    return response.data[0]
-
-
-def generate_unique_hive_id() -> str:
-    for _ in range(5):
-        hive_id = f"HC-{secrets.token_hex(4).upper()}"
-        existing = supabase.table("hives").select("hive_id").eq("hive_id", hive_id).limit(1).execute()
-        if not existing.data:
-            return hive_id
-    raise HTTPException(status_code=503, detail="Unable to generate a unique hive ID")
+    return add_hive_record(hive.model_dump(), beekeeper_id)
 
 
 @router.post("/api/honey-batches", status_code=201)
 def create_honey_batch(batch: HoneyBatchCreate, request: Request) -> dict[str, Any]:
     beekeeper_id = current_beekeeper_id(request)
-    hive = (
-        supabase.table("hives")
-        .select("hive_id")
-        .eq("hive_id", batch.hive_id)
-        .eq("beekeeper_id", beekeeper_id)
-        .limit(1)
-        .execute()
-    )
-    if not hive.data:
-        raise HTTPException(status_code=404, detail="Hive not found")
-
-    batch_id = generate_unique_batch_id()
-    payload = batch.model_dump(mode="json")
-    payload["batch_id"] = batch_id
-    payload["status"] = "HARVESTED"
-    response = supabase.table("honey_batches").insert(payload).execute()
-    if not response.data:
-        raise HTTPException(status_code=400, detail="Honey batch could not be created")
-    return response.data[0]
-
-
-def generate_unique_batch_id() -> str:
-    for _ in range(5):
-        batch_id = f"HB-{secrets.token_hex(4).upper()}"
-        existing = supabase.table("honey_batches").select("batch_id").eq("batch_id", batch_id).limit(1).execute()
-        if not existing.data:
-            return batch_id
-    raise HTTPException(status_code=503, detail="Unable to generate a unique batch ID")
+    return create_batch(batch.model_dump(mode="json"), beekeeper_id, str(request.base_url).rstrip("/"))
 
 
 @router.get("/api/honey-batches")
 def list_honey_batches(request: Request) -> list[dict[str, Any]]:
     beekeeper_id = current_beekeeper_id(request)
-    hives = supabase.table("hives").select("hive_id").eq("beekeeper_id", beekeeper_id).execute()
-    hive_ids = [hive["hive_id"] for hive in (hives.data or [])]
-    if not hive_ids:
-        return []
+    return list_batches(beekeeper_id, str(request.base_url).rstrip("/"))
 
-    response = (
-        supabase.table("honey_batches")
-        .select("*")
-        .in_("hive_id", hive_ids)
-        .order("harvest_date", desc=True)
-        .execute()
-    )
-    return response.data or []
+
+@router.get("/api/public/batches/{batch_id}")
+def get_public_batch(batch_id: str) -> dict[str, Any]:
+    return get_batch_verification(batch_id)
 
 
 @router.patch("/api/honey-batches/{batch_id}")
@@ -128,49 +111,13 @@ def update_honey_batch_status(
     request: Request,
 ) -> dict[str, Any]:
     beekeeper_id = current_beekeeper_id(request)
-    batch = supabase.table("honey_batches").select("*").eq("batch_id", batch_id).limit(1).execute()
-    if not batch.data:
-        raise HTTPException(status_code=404, detail="Honey batch not found")
-
-    owned_hive = (
-        supabase.table("hives")
-        .select("hive_id")
-        .eq("hive_id", batch.data[0]["hive_id"])
-        .eq("beekeeper_id", beekeeper_id)
-        .limit(1)
-        .execute()
-    )
-    if not owned_hive.data:
-        raise HTTPException(status_code=404, detail="Honey batch not found")
-
-    current_status = str(batch.data[0]["status"]).upper()
-    expected_next = {"HARVESTED": "PROCESSED", "PROCESSED": "DISTRIBUTED"}.get(current_status)
-    if status_update.status != expected_next:
-        raise HTTPException(status_code=409, detail="Invalid batch status transition")
-
-    response = (
-        supabase.table("honey_batches")
-        .update({"status": status_update.status})
-        .eq("batch_id", batch_id)
-        .execute()
-    )
-    if not response.data:
-        raise HTTPException(status_code=400, detail="Honey batch status could not be updated")
-    return response.data[0]
+    return update_batch_status(batch_id, status_update.status, beekeeper_id)
 
 
 @router.delete("/api/hives/{hive_id}", status_code=204)
 def remove_hive(hive_id: str, request: Request) -> None:
     beekeeper_id = current_beekeeper_id(request)
-    response = (
-        supabase.table("hives")
-        .delete()
-        .eq("hive_id", hive_id)
-        .eq("beekeeper_id", beekeeper_id)
-        .execute()
-    )
-    if not response.data:
-        raise HTTPException(status_code=404, detail="Hive not found")
+    remove_hive_record(hive_id, beekeeper_id)
 
 
 router.include_router(auth_router)

@@ -10,6 +10,7 @@ from app.routing.routes import router as api_router
 load_dotenv()
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8000")
+PORT = int(os.getenv("PORT", "8000"))
 
 app = FastAPI(title="HoneyChain API", version="0.1.0")
 
@@ -25,3 +26,9 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=PORT)

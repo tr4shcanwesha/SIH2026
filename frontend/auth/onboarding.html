@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete your beekeeper profile — HoneyChain</title>
+<link rel="stylesheet" href="/assets/landing/style.css">
+<link rel="stylesheet" href="/assets/auth/style.css">
+</head>
+<body>
+<nav class="site-nav"><div class="container"><a href="/" class="brand">HoneyChain</a></div></nav>
+<main class="auth-shell">
+  <section class="auth-card" aria-labelledby="onboarding-title">
+    <span class="eyebrow-tag"><span class="dot"></span> New beekeeper profile</span>
+    <h1 id="onboarding-title">Tell us about yourself.</h1>
+    <p class="auth-intro">We need these details to personalize your hive workspace and batch records.</p>
+    <form class="credentials-form" id="onboarding-form">
+      <label for="name">Full name</label>
+      <input id="name" name="name" type="text" autocomplete="name" required>
+      <label for="phone">Phone number</label>
+      <input id="phone" name="phone" type="tel" autocomplete="tel" required>
+      <label for="location">Location</label>
+      <input id="location" name="location" type="text" autocomplete="address-level2" required>
+      <button class="google-button" type="submit">Continue to dashboard</button>
+      <p id="onboarding-status" class="auth-status" role="status"></p>
+    </form>
+  </section>
+</main>
+<script src="/assets/auth/onboarding.js"></script>
+</body>
+</html>

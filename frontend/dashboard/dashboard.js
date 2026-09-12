@@ -41,6 +41,31 @@ const saveHarvestOrder = (order) => {
   window.sessionStorage.setItem(harvestOrderStorageKey, JSON.stringify(order));
 };
 
+const loadDashboardProfile = async () => {
+  const response = await fetch('/api/profile');
+  if (!response.ok) return;
+  const payload = await response.json();
+  const welcome = document.querySelector('#dashboard-welcome');
+  if (welcome) welcome.textContent = `Welcome back ${payload.beekeeper.name}`;
+};
+
+const renderDynamicTimes = () => {
+  document.querySelectorAll('[data-sync-now]').forEach((element) => {
+    element.textContent = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(new Date());
+  });
+  document.querySelectorAll('[data-relative-minutes]').forEach((element) => {
+    const minutes = Number(element.dataset.relativeMinutes);
+    element.textContent = minutes < 60
+      ? `${minutes} minutes ago`
+      : minutes < 1440
+        ? `${Math.floor(minutes / 60)} hours ago`
+        : `${Math.floor(minutes / 1440)} days ago`;
+  });
+};
+
+renderDynamicTimes();
+loadDashboardProfile().catch(() => {});
+
 const loadHarvestBatches = async () => {
   const [batchResponse, hiveResponse] = await Promise.all([
     fetch('/api/honey-batches'),
@@ -74,7 +99,6 @@ const addHarvestBatch = async (harvestButton) => {
     body: JSON.stringify({
       hive_id: harvestButton.dataset.harvestHive,
       honey_type: harvestButton.dataset.honeyType || 'Wild Forest Honey',
-      harvest_date: new Date().toISOString().slice(0, 10),
       quantity: Number(harvestButton.dataset.quantity || 0),
     }),
   });
@@ -150,10 +174,10 @@ const renderHarvestBatches = () => {
     const batchStatus = String(batch.status).toUpperCase();
     const progress = progressByStatus[batchStatus] || 25;
     return `
-      <article class="harvest-reference-row">
+      <article class="harvest-reference-row harvest-card">
         <div class="harvest-reference-id">
           <div class="harvest-reference-hex"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
-          <div><strong>${batch.hive_id}</strong><small>Batch created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
+          <div><strong>${batch.hive_id}</strong><small>Batch ${batch.batch_id} · created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
         </div>
         ${batchStatusMarkup(batchStatus)}
         <div class="harvest-reference-progress">
@@ -162,6 +186,11 @@ const renderHarvestBatches = () => {
         </div>
         ${actionMarkup(batch, batchStatus)}
         <button class="harvest-more-button" type="button" aria-label="More batch options">⋮</button>
+        <div class="batch-qr-row">
+          <div class="batch-qr" data-qr-url="${batch.verification_url || `/verify/${batch.batch_id}`}" aria-label="Verification QR code"></div>
+          <a class="batch-qr-link" href="${batch.verification_url || `/verify/${batch.batch_id}`}" target="_blank" rel="noreferrer">Verify this batch</a>
+        </div>
+      </article>
       </article>`;
   };
   harvestList.innerHTML = batches.length
@@ -212,6 +241,18 @@ const renderHarvestBatches = () => {
   if (harvestSummary) {
     harvestSummary.textContent = `${batches.length} batch${batches.length === 1 ? '' : 'es'}`;
   }
+  document.querySelectorAll('.batch-qr').forEach((element) => {
+    if (window.QRCode && !element.hasChildNodes()) {
+      new window.QRCode(element, {
+        text: element.dataset.qrUrl,
+        width: 88,
+        height: 88,
+        colorDark: '#2A1B0F',
+        colorLight: '#FFFBF3',
+        correctLevel: window.QRCode.CorrectLevel.M,
+      });
+    }
+  });
 };
 
 const renderHarvestCarousel = () => {
@@ -503,6 +544,8 @@ const loadDashboardView = async (viewName, updateHistory = false) => {
     }
 
     dashboardContent.innerHTML = newContent.innerHTML;
+    renderDynamicTimes();
+    loadDashboardProfile().catch(() => {});
     initializeHivePage();
     initializeHarvestPage();
     if (updateHistory) {

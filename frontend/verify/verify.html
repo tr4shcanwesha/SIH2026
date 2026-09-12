@@ -41,12 +41,12 @@
         </svg>
         <div class="scan-line"></div>
       </div>
-      <p style="margin:0;">Batch #HC-7734-IN</p>
+      <p style="margin:0;">Batch <span id="banner-batch-id">loading...</span></p>
     </div>
     <div class="page-banner-copy">
       <span class="eyebrow-tag"><span class="dot"></span> Consumer verification</span>
       <h1>Scan the jar. See its story.</h1>
-      <p>In the finished product this page opens automatically when a shopper scans the QR code on their honey jar — no app required. Below is a sample result for batch <strong>#HC-7734-IN</strong>.</p>
+      <p>View the recorded details for this batch, then open its timeline to inspect every blockchain event.</p>
     </div>
   </div>
 </div>
@@ -55,34 +55,28 @@
   <form class="batch-lookup" id="batch-lookup">
     <label for="batch-id">Enter honey batch ID</label>
     <div class="batch-lookup-row">
-      <input id="batch-id" name="batch-id" type="text" value="HC-7734-IN" placeholder="e.g. HC-7734-IN" required>
+      <input id="batch-id" name="batch-id" type="text" placeholder="e.g. HB-1234ABCD" required>
       <button type="submit">Verify ID</button>
     </div>
-    <p id="lookup-status" class="lookup-status" role="status">Showing sample batch information.</p>
+    <p id="lookup-status" class="lookup-status" role="status">Enter a batch ID to verify its recorded details.</p>
   </form>
 
-  <div class="verify-result">
-    <div class="verify-badge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
-      Authentic — confirmed on HoneyChain ledger
+  <div class="verify-result" id="verify-result" hidden>
+    <div class="tamper-alert" id="tamper-alert" hidden>
+      <strong>CANNOT VERIFY</strong>
+      <span>Data has been tampered with.</span>
     </div>
-
-    <div class="trace-grid">
-      <div class="trace-row"><span>Product</span><span>Wild Forest Honey, 500g</span></div>
-      <div class="trace-row"><span>Beekeeper</span><span>Lakshmi Beekeepers, Araku</span></div>
-      <div class="trace-row"><span>Hive cluster</span><span>Araku Valley, Andhra Pradesh</span></div>
-      <div class="trace-row"><span>Harvest date</span><span>14 Mar 2026</span></div>
-      <div class="trace-row"><span>Bottled on</span><span>22 Mar 2026</span></div>
-      <div class="trace-row"><span>Lab certification</span><span>KVIC-affiliated lab, passed</span></div>
+    <div id="verified-record" hidden>
+      <div class="verify-badge" id="verify-badge"></div>
+      <h2>Batch record</h2>
+      <div class="trace-grid" id="batch-details"></div>
+      <h2>Hive details</h2>
+      <div class="trace-grid" id="hive-details"></div>
+      <h2>Beekeeper details</h2>
+      <div class="trace-grid" id="beekeeper-details"></div>
+      <button class="timeline-button" id="timeline-button" type="button" aria-expanded="false">Show blockchain timeline</button>
+      <div class="timeline" id="timeline" hidden></div>
     </div>
-
-    <div class="lab-grid">
-      <div class="lab-cell"><span>Moisture content</span><b>17.2%</b></div>
-      <div class="lab-cell"><span>Adulteration test</span><b>Not detected</b></div>
-      <div class="lab-cell"><span>Pollen origin</span><b>Multi-floral, forest</span></b></div>
-      <div class="lab-cell"><span>Colony health at harvest</span><b>Good</b></div>
-    </div>
-
   </div>
 </div>
 
@@ -90,13 +84,109 @@
   const batchLookup = document.querySelector('#batch-lookup');
   const batchIdInput = document.querySelector('#batch-id');
   const lookupStatus = document.querySelector('#lookup-status');
+  const verifyResult = document.querySelector('#verify-result');
+  const tamperAlert = document.querySelector('#tamper-alert');
+  const verifiedRecord = document.querySelector('#verified-record');
+  const verifyBadge = document.querySelector('#verify-badge');
+  const batchDetails = document.querySelector('#batch-details');
+  const hiveDetails = document.querySelector('#hive-details');
+  const beekeeperDetails = document.querySelector('#beekeeper-details');
+  const timelineButton = document.querySelector('#timeline-button');
+  const timeline = document.querySelector('#timeline');
+  const bannerBatchId = document.querySelector('#banner-batch-id');
+  let currentBlocks = [];
+
+  const renderBatch = (payload) => {
+    const verification = payload.verification;
+    const isVerified = Boolean(verification?.verified);
+    bannerBatchId.textContent = payload.batch_id || payload.batch?.batch_id || 'unavailable';
+    verifyResult.hidden = false;
+    tamperAlert.hidden = isVerified;
+    verifiedRecord.hidden = !isVerified;
+    currentBlocks = [];
+    if (!isVerified) {
+      batchDetails.replaceChildren();
+      hiveDetails.replaceChildren();
+      beekeeperDetails.replaceChildren();
+      timeline.replaceChildren();
+      timeline.hidden = true;
+      lookupStatus.textContent = 'Verification failed. The record is hidden.';
+      return;
+    }
+    const batch = payload.batch;
+    const hive = payload.hive;
+    const beekeeper = payload.beekeeper;
+    currentBlocks = payload.blocks;
+    verifyBadge.textContent = 'Authentic — confirmed on HoneyChain ledger';
+    verifyBadge.classList.remove('verification-failed');
+    batchDetails.innerHTML = [
+      ['Batch ID', batch.batch_id],
+      ['Hive ID', batch.hive_id],
+      ['Honey type', batch.honey_type],
+      ['Harvest date', batch.harvest_date],
+      ['Quantity', batch.quantity],
+      ['Status', batch.status],
+    ].map(([label, value]) => `<div class="trace-row"><span>${label}</span><span>${value}</span></div>`).join('');
+    hiveDetails.innerHTML = [
+      ['Hive ID', hive.hive_id],
+      ['Location', hive.location],
+      ['Bee species', hive.bee_species],
+      ['Hive type', hive.hive_type],
+      ['Installation date', hive.installation_date],
+      ['Status', hive.status],
+    ].map(([label, value]) => `<div class="trace-row"><span>${label}</span><span>${value ?? 'Not provided'}</span></div>`).join('');
+    beekeeperDetails.innerHTML = [
+      ['Beekeeper ID', beekeeper.beekeeper_id],
+      ['Name', beekeeper.name],
+      ['Email', beekeeper.email],
+      ['Phone', beekeeper.phone],
+      ['Location', beekeeper.location],
+    ].map(([label, value]) => `<div class="trace-row"><span>${label}</span><span>${value ?? 'Not provided'}</span></div>`).join('');
+    timeline.hidden = true;
+    timelineButton.setAttribute('aria-expanded', 'false');
+    timelineButton.textContent = `Show blockchain timeline (${currentBlocks.length} events)`;
+  };
+
+  const loadBatch = async (batchId) => {
+    lookupStatus.textContent = `Loading batch ${batchId}...`;
+    const response = await fetch(`/api/public/batches/${encodeURIComponent(batchId)}`);
+    if (!response.ok) {
+      throw new Error('No batch with that ID was found.');
+    }
+    renderBatch(await response.json());
+    lookupStatus.textContent = `Showing the recorded database entry for ${batchId}.`;
+  };
 
   batchLookup.addEventListener('submit', (event) => {
     event.preventDefault();
     const batchId = batchIdInput.value.trim().toUpperCase();
     batchIdInput.value = batchId;
-    lookupStatus.textContent = `Showing information for batch ${batchId}.`;
+    loadBatch(batchId).catch((error) => {
+      verifyResult.hidden = true;
+      lookupStatus.textContent = error.message;
+    });
   });
+
+  timelineButton.addEventListener('click', () => {
+    const isOpen = !timeline.hidden;
+    timeline.hidden = isOpen;
+    timelineButton.setAttribute('aria-expanded', String(!isOpen));
+    timelineButton.textContent = `${isOpen ? 'Show' : 'Hide'} blockchain timeline (${currentBlocks.length} events)`;
+    if (!isOpen) {
+      timeline.innerHTML = currentBlocks.length ? currentBlocks.map((block, index) => `
+        <article class="timeline-event">
+          <div class="timeline-marker">${index + 1}</div>
+          <div><strong>${block.event_type}</strong><time>${new Date(block.timestamp).toLocaleString()}</time>
+          <div class="hash-box">Data: ${block.data_hash}<br>Block: ${block.block_hash}<br>Previous: ${block.previous_hash || 'GENESIS'}</div></div>
+        </article>`).join('') : '<p>No blockchain events recorded.</p>';
+    }
+  });
+
+  const initialBatchId = window.location.pathname.split('/').pop();
+  if (initialBatchId && initialBatchId !== 'verify') {
+    batchIdInput.value = initialBatchId.toUpperCase();
+    loadBatch(batchIdInput.value).catch((error) => { lookupStatus.textContent = error.message; });
+  }
 </script>
 </body>
 </html>

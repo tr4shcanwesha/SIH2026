@@ -34,7 +34,7 @@ def render_dashboard_shell() -> str:
 
 @router.get("/", include_in_schema=False)
 def landing_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "home" / "home.html")
+    return FileResponse(FRONTEND_DIR / "landing" / "landing.html")
 
 
 @router.get("/auth", include_in_schema=False)
@@ -47,6 +47,20 @@ def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
     if not has_admin_session(request.cookies.get("honeychain_session")):
         return RedirectResponse(url="/auth", status_code=303)
     return HTMLResponse(render_dashboard_shell())
+
+
+@router.get("/onboarding", include_in_schema=False, response_model=None)
+def onboarding_page(request: Request) -> FileResponse | RedirectResponse:
+    if not has_admin_session(request.cookies.get("honeychain_session")):
+        return RedirectResponse(url="/auth", status_code=303)
+    return FileResponse(FRONTEND_DIR / "auth" / "onboarding.html")
+
+
+@router.get("/profile", include_in_schema=False, response_model=None)
+def profile_page(request: Request) -> FileResponse | RedirectResponse:
+    if not has_admin_session(request.cookies.get("honeychain_session")):
+        return RedirectResponse(url="/auth", status_code=303)
+    return FileResponse(FRONTEND_DIR / "dashboard" / "profile.html")
 
 
 @router.get("/dashboard/{view_name}", include_in_schema=False, response_model=None)
@@ -72,21 +86,19 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
     return HTMLResponse(rendered_html)
 
 
-@router.get("/homepage", include_in_schema=False, response_model=None)
-def homepage(request: Request) -> FileResponse | RedirectResponse:
-    if not has_admin_session(request.cookies.get("honeychain_session")):
-        return RedirectResponse(url="/auth", status_code=303)
-    return FileResponse(FRONTEND_DIR / "homepage" / "homepage.html")
-
-
 @router.get("/verify", include_in_schema=False)
 def verify_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "verify.html")
 
 
-@router.get("/assets/home/style.css", include_in_schema=False)
-def home_styles() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "home" / "style.css")
+@router.get("/verify/{batch_id}", include_in_schema=False)
+def verify_batch_page(batch_id: str) -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "verify" / "verify.html")
+
+
+@router.get("/assets/landing/style.css", include_in_schema=False)
+def landing_styles() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "landing" / "style.css")
 
 
 @router.get("/assets/auth/style.css", include_in_schema=False)
@@ -99,9 +111,24 @@ def auth_script() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "auth" / "auth.js")
 
 
+@router.get("/assets/auth/onboarding.js", include_in_schema=False)
+def onboarding_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "auth" / "onboarding.js")
+
+
+@router.get("/assets/dashboard/profile.js", include_in_schema=False)
+def profile_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dashboard" / "profile.js")
+
+
 @router.get("/assets/auth/logout.js", include_in_schema=False)
 def logout_script() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "auth" / "logout.js")
+
+
+@router.get("/assets/auth/session.js", include_in_schema=False)
+def session_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "auth" / "session.js")
 
 
 @router.get("/assets/dashboard/style.css", include_in_schema=False)
@@ -147,8 +174,3 @@ def dashboard_jar_image() -> FileResponse:
 @router.get("/assets/verify/style.css", include_in_schema=False)
 def verify_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "style.css")
-
-
-@router.get("/assets/homepage/style.css", include_in_schema=False)
-def homepage_styles() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "homepage" / "style.css")
