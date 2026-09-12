@@ -18,7 +18,7 @@ Fill `.env` with values from the Supabase project dashboard, then run:
 $env:SUPABASE_URL = "https://your-project-ref.supabase.co"
 $env:SUPABASE_ANON_KEY = "your-supabase-anon-key"
 $env:SUPABASE_SERVICE_ROLE_KEY = "your-supabase-service-role-key"
-$env:FRONTEND_URL = "http://localhost:8000"
+$env:FRONTEND_URL = "https://honeychain-icix.onrender.com"
 $env:PORT = "8000"
 uvicorn app.main:app --reload --host 0.0.0.0 --port $env:PORT
 ```
@@ -31,10 +31,10 @@ uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
 
 Enable Google under Supabase Dashboard > Authentication > Providers > Google, and add the Supabase callback URL shown there. Add the frontend auth URL to the provider redirect allow list:
 
-`http://localhost:8000/auth`
+`https://honeychain-icix.onrender.com/auth`
 
 The FastAPI server serves both the API and the frontend. Open the application at
-`http://localhost:8000/`; no separate frontend server is needed.
+`https://honeychain-icix.onrender.com/`; no separate frontend server is needed.
 
 For the prototype admin login, use:
 
