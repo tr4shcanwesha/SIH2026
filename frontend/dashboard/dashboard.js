@@ -173,6 +173,7 @@ const renderHarvestBatches = () => {
   const batchMarkup = (batch) => {
     const batchStatus = String(batch.status).toUpperCase();
     const progress = progressByStatus[batchStatus] || 25;
+    const verificationUrl = batch.verification_url || `${window.location.origin}/verify/${batch.batch_id}`;
     return `
       <article class="harvest-reference-row harvest-card">
         <div class="harvest-reference-id">
@@ -180,9 +181,9 @@ const renderHarvestBatches = () => {
           <div><strong>${batch.hive_id}</strong><small>Batch ${batch.batch_id} · created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
         </div>
         <div class="batch-verification">
-          <div class="batch-qr" data-qr-url="/verify/${batch.batch_id}" aria-label="Verification QR code"></div>
+          <div class="batch-qr" data-qr-url="${verificationUrl}" aria-label="Verification QR code"></div>
           ${batchStatusMarkup(batchStatus)}
-          <a class="batch-verify-button" href="/verify/${batch.batch_id}">Verify this batch</a>
+          <a class="batch-verify-button" href="${verificationUrl}">Verify this batch</a>
         </div>
         <div class="harvest-reference-progress">
           <div class="harvest-reference-track"><span class="progress-${batchStatus.toLowerCase()}" style="width:${progress}%"></span></div>
