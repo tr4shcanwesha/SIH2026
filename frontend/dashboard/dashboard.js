@@ -92,23 +92,92 @@ const loadHarvestBatches = async () => {
   harvestCarouselCurrent = harvestCarouselOffset;
 };
 
-const addHarvestBatch = async (harvestButton) => {
-  const response = await fetch('/api/honey-batches', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      hive_id: harvestButton.dataset.harvestHive,
-      honey_type: harvestButton.dataset.honeyType || 'Wild Forest Honey',
-      quantity: Number(harvestButton.dataset.quantity || 0),
-    }),
-  });
-  if (!response.ok) {
-    throw new Error('Honey batch could not be created.');
+const showHarvestToast = (message) => {
+  const toast = document.querySelector('#harvest-toast');
+  if (!toast) {
+    return;
+  }
+  toast.textContent = message;
+  toast.hidden = false;
+  window.clearTimeout(window.harvestToastTimer);
+  window.harvestToastTimer = window.setTimeout(() => {
+    toast.hidden = true;
+  }, 3000);
+};
+
+const addHarvestBatch = (harvestButton) => new Promise((resolve) => {
+  const modal = document.querySelector('#harvest-entry-modal');
+  const form = document.querySelector('#harvest-entry-form');
+  const quantityInput = document.querySelector('#harvest-quantity');
+  const honeyTypeInput = document.querySelector('#harvest-honey-type');
+  const error = document.querySelector('#harvest-entry-error');
+  const submitButton = form?.querySelector('.harvest-entry-submit');
+  if (!modal || !form || !quantityInput || !honeyTypeInput || !error || !submitButton) {
+    resolve(false);
+    return;
   }
 
-  const batch = await response.json();
-  await loadHarvestBatches();
-};
+  quantityInput.value = '';
+  honeyTypeInput.value = '';
+  error.textContent = '';
+  modal.hidden = false;
+  document.body.classList.add('harvest-entry-modal-open');
+  quantityInput.focus();
+
+  const finish = (result) => {
+    form.removeEventListener('submit', submit);
+    modal.querySelectorAll('[data-close-harvest-entry]').forEach((element) => {
+      element.removeEventListener('click', close);
+    });
+    modal.hidden = true;
+    document.body.classList.remove('harvest-entry-modal-open');
+    resolve(result);
+  };
+  const close = () => finish(false);
+  const submit = async (event) => {
+    event.preventDefault();
+    const quantity = Number(quantityInput.value);
+    const honeyType = honeyTypeInput.value.trim();
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      error.textContent = 'Quantity must be a positive number.';
+      quantityInput.focus();
+      return;
+    }
+    if (!honeyType) {
+      error.textContent = 'Honey type is required.';
+      honeyTypeInput.focus();
+      return;
+    }
+    submitButton.disabled = true;
+    error.textContent = '';
+    try {
+      const response = await fetch('/api/honey-batches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hive_id: harvestButton.dataset.harvestHive,
+          honey_type: honeyType,
+          quantity,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Honey batch could not be created.');
+      }
+      await response.json();
+      await loadHarvestBatches();
+      finish(true);
+      showHarvestToast('Harvest saved successfully.');
+    } catch (requestError) {
+      console.error('Failed to create honey batch:', requestError);
+      error.textContent = requestError.message;
+      submitButton.disabled = false;
+    }
+  };
+  form.addEventListener('submit', submit);
+  modal.querySelectorAll('[data-close-harvest-entry]').forEach((element) => {
+    element.addEventListener('click', close);
+  });
+});
 
 const startHarvestCooldown = (harvestButton) => {
   const cooldownEndsAt = Date.now() + harvestCooldownMs;
@@ -461,8 +530,13 @@ document.addEventListener('click', async (event) => {
   harvestButton.disabled = true;
   harvestButton.textContent = 'Saving...';
   try {
-    await addHarvestBatch(harvestButton);
-    startHarvestCooldown(harvestButton);
+    const created = await addHarvestBatch(harvestButton);
+    if (created) {
+      startHarvestCooldown(harvestButton);
+    } else {
+      harvestButton.disabled = false;
+      harvestButton.textContent = 'Harvest';
+    }
   } catch (error) {
     console.error('Failed to create honey batch:', error);
     harvestButton.disabled = false;
