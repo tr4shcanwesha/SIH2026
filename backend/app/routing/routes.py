@@ -14,7 +14,12 @@ from app.services.batches import (
     update_batch_status,
 )
 from app.services.blockchain import get_batch_verification
-from app.services.beekeepers import delete_beekeeper_account, get_beekeeper_profile, update_beekeeper_profile
+from app.services.beekeepers import (
+    delete_beekeeper_account,
+    get_beekeeper_profile,
+    update_beekeeper_profile,
+    update_beekeeper_profile_with_uploads,
+)
 
 router = APIRouter()
 
@@ -54,9 +59,23 @@ def profile(request: Request) -> dict[str, Any]:
 
 
 @router.patch("/api/profile")
-def update_profile(profile_update: BeekeeperProfileUpdate, request: Request) -> dict[str, Any]:
+async def update_profile(request: Request) -> dict[str, Any]:
     beekeeper_id = current_beekeeper_id(request)
-    update_beekeeper_profile(beekeeper_id, profile_update.model_dump())
+    content_type = request.headers.get("content-type", "")
+
+    if "multipart/form-data" in content_type:
+        form_data = await request.form()
+        payload: dict[str, Any] = {}
+        for key, value in form_data.items():
+            if hasattr(value, "filename"):
+                payload[key] = value
+            else:
+                payload[key] = value
+        updated = await update_beekeeper_profile_with_uploads(beekeeper_id, payload)
+        return get_beekeeper_profile(beekeeper_id)
+
+    payload = await request.json()
+    update_beekeeper_profile(beekeeper_id, payload)
     return get_beekeeper_profile(beekeeper_id)
 
 

@@ -78,15 +78,33 @@ create table public.beekeeper (
 	email text not null,
 	phone text null,
 	location text null,
-	constraint beekeeper_pkey primary key (beekeeper_id)
+	kyc_status text not null default 'pending'::text,
+	identity_document_type text null,
+	identity_document_path text null,
+	address_document_type text null,
+	address_document_path text null,
+	certificate_type text null,
+	certificate_path text null,
+	constraint beekeeper_pkey primary key (beekeeper_id),
+	constraint beekeeper_email_key unique (email)
 ) TABLESPACE pg_default;
 ```
 
 Google/Gmail is the only login method for now. After login, compare the user's
 Gmail address with `public.beekeeper.email`. If a matching email exists, fetch
 and use that beekeeper's complete row. If no matching email exists, create a new
-beekeeper row and then use the newly created beekeeper record for subsequent
-requests.
+beekeeper row with `kyc_status = 'pending'` and send the user to `/onboarding`.
+Then the app checks the beekeeper's status and routes them as follows:
+
+- `approved` -> redirect to `/dashboard`
+- `pending` -> show a pending-request page and keep all submitted details autofilled for resubmission
+- `rejected` -> show a red rejection banner at the top and keep previous application values autofilled for correction and resubmission
+
+Manual review happens outside the app: a project admin can update the row's
+`kyc_status` to `approved` in Supabase when the application is accepted. The
+onboarding form must retain and display previously submitted document types and
+paths so the beekeeper can review what they uploaded or referenced before
+resubmitting.
 
 ### `public.honey_batches`
 

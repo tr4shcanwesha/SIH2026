@@ -13,6 +13,11 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
+
+def get_cookie_security() -> bool:
+    return os.getenv("APP_ENV", "production").strip().lower() == "production"
+
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 ADMIN_USERNAME = "honey"
@@ -21,17 +26,48 @@ active_sessions: dict[str, str] = {}
 
 
 def get_or_create_beekeeper(email: str) -> tuple[str, bool]:
-    existing = supabase.table("beekeeper").select("beekeeper_id").eq("email", email).limit(1).execute()
+    existing = supabase.table("beekeeper").select("*").eq("email", email).limit(1).execute()
     if existing.data:
         return existing.data[0]["beekeeper_id"], False
 
     beekeeper_id = f"bk_{secrets.token_hex(8)}"
     response = supabase.table("beekeeper").insert(
-        {"beekeeper_id": beekeeper_id, "name": "", "email": email, "phone": "", "location": ""}
+        {
+            "beekeeper_id": beekeeper_id,
+            "name": "",
+            "email": email,
+            "phone": "",
+            "location": "",
+            "kyc_status": "pending",
+            "identity_document_type": None,
+            "identity_document_path": None,
+            "address_document_type": None,
+            "address_document_path": None,
+            "certificate_type": None,
+            "certificate_path": None,
+        }
     ).execute()
     if not response.data:
         raise RuntimeError("Beekeeper profile could not be created")
     return beekeeper_id, True
+
+
+def get_beekeeper_status(email: str) -> str:
+    response = supabase.table("beekeeper").select("kyc_status").eq("email", email).limit(1).execute()
+    if not response.data:
+        return "pending"
+    status = str(response.data[0].get("kyc_status", "pending")).strip().lower()
+    return status if status in {"pending", "approved", "rejected"} else "pending"
+
+
+def get_beekeeper_status_by_id(beekeeper_id: Optional[str]) -> str:
+    if not beekeeper_id:
+        return "pending"
+    response = supabase.table("beekeeper").select("kyc_status").eq("beekeeper_id", beekeeper_id).limit(1).execute()
+    if not response.data:
+        return "pending"
+    status = str(response.data[0].get("kyc_status", "pending")).strip().lower()
+    return status if status in {"pending", "approved", "rejected"} else "pending"
 
 
 def create_admin_session() -> str:
@@ -73,7 +109,9 @@ def admin_login(
         )
 
     beekeeper_id, is_new = get_or_create_beekeeper(os.getenv("ADMIN_EMAIL", "honey@honeychain.local"))
-    response = RedirectResponse(url="/onboarding" if is_new else "/dashboard", status_code=303)
+    status = get_beekeeper_status(os.getenv("ADMIN_EMAIL", "honey@honeychain.local"))
+    destination = "/dashboard" if status == "approved" else "/onboarding"
+    response = RedirectResponse(url=destination, status_code=303)
     session_id = secrets.token_urlsafe(32)
     active_sessions[session_id] = beekeeper_id
     response.set_cookie(
@@ -81,6 +119,7 @@ def admin_login(
         value=session_id,
         httponly=True,
         samesite="lax",
+        secure=get_cookie_security(),
         max_age=3600,
     )
     return response
@@ -102,8 +141,16 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
             status_code=401,
         )
 
-    beekeeper_id, is_new = get_or_create_beekeeper(user.user.email or "google-user@honeychain.local")
-    response = RedirectResponse(url="/onboarding" if is_new else "/dashboard", status_code=303)
+    email = user.user.email or "google-user@honeychain.local"
+    beekeeper_id, is_new = get_or_create_beekeeper(email)
+    status = get_beekeeper_status(email)
+    if status == "approved":
+        destination = "/dashboard"
+    elif status == "rejected":
+        destination = "/onboarding?status=rejected"
+    else:
+        destination = "/onboarding?status=pending" if not is_new else "/onboarding?status=pending"
+    response = RedirectResponse(url=destination, status_code=303)
     session_id = secrets.token_urlsafe(32)
     active_sessions[session_id] = beekeeper_id
     response.set_cookie(
@@ -111,6 +158,7 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
         value=session_id,
         httponly=True,
         samesite="lax",
+        secure=get_cookie_security(),
         max_age=3600,
     )
     return response

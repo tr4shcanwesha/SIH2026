@@ -1,8 +1,54 @@
+import os
+import re
+from pathlib import Path
 from typing import Any
 
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 
 from app.auth.auth import supabase
+
+ALLOWED_UPLOAD_TYPES = {"image/jpeg", "image/png", "application/pdf"}
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
+MAX_FILE_SIZE = 5 * 1024 * 1024
+UPLOAD_ROOT = Path(__file__).resolve().parents[1] / "uploads"
+UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+
+
+def sanitize_upload_name(filename: str) -> str:
+    clean_name = os.path.basename(filename or "document")
+    clean_name = re.sub(r"[^A-Za-z0-9._-]", "_", clean_name)
+    if not clean_name or clean_name in {".", ".."}:
+        clean_name = "document"
+    return clean_name
+
+
+def validate_uploaded_file(file: UploadFile) -> None:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="A file is required")
+    extension = os.path.splitext(file.filename)[1].lower()
+    content_type = (file.content_type or "").lower()
+    if content_type not in ALLOWED_UPLOAD_TYPES and extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Only JPG, JPEG, PNG, and PDF files are allowed")
+
+    file.file.seek(0, os.SEEK_END)
+    size = file.file.tell()
+    file.file.seek(0)
+    if size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Each uploaded file must be 5 MB or smaller")
+
+
+async def save_uploaded_file(file: UploadFile, beekeeper_id: str, field_name: str) -> str:
+    validate_uploaded_file(file)
+    file_name = sanitize_upload_name(file.filename or "document")
+    safe_name = f"{beekeeper_id}_{field_name}_{file_name}"
+    upload_path = UPLOAD_ROOT / safe_name
+    with upload_path.open("wb") as destination:
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+            destination.write(chunk)
+    return f"/uploads/{safe_name}"
 
 
 def get_beekeeper_profile(beekeeper_id: str) -> dict[str, Any]:
@@ -46,15 +92,64 @@ def get_beekeeper_profile(beekeeper_id: str) -> dict[str, Any]:
 
 
 def update_beekeeper_profile(beekeeper_id: str, payload: dict[str, str]) -> dict[str, Any]:
+    clean_payload = {
+        key: value if value not in (None, "") else None
+        for key, value in payload.items()
+        if key in {
+            "name",
+            "phone",
+            "location",
+            "kyc_status",
+            "identity_document_type",
+            "identity_document_path",
+            "address_document_type",
+            "address_document_path",
+            "certificate_type",
+            "certificate_path",
+        }
+    }
+    if "kyc_status" not in clean_payload:
+        clean_payload["kyc_status"] = "pending"
     response = (
         supabase.table("beekeeper")
-        .update(payload)
+        .update(clean_payload)
         .eq("beekeeper_id", beekeeper_id)
         .execute()
     )
     if not response.data:
         raise HTTPException(status_code=400, detail="Beekeeper profile could not be updated")
     return response.data[0]
+
+
+async def update_beekeeper_profile_with_uploads(beekeeper_id: str, form_data: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, str] = {}
+    for field in ["name", "phone", "location", "kyc_status"]:
+        if field in form_data and form_data[field] not in (None, ""):
+            payload[field] = str(form_data[field])
+
+    document_map = {
+        "identity_document": "identity_document_path",
+        "address_document": "address_document_path",
+        "certificate": "certificate_path",
+    }
+
+    for file_field, db_field in document_map.items():
+        file_value = form_data.get(file_field)
+        if file_value is not None and hasattr(file_value, "filename"):
+            uploaded_url = await save_uploaded_file(file_value, beekeeper_id, file_field)
+            payload[db_field] = uploaded_url
+
+    for file_type_field, db_field in {
+        "identity_document_type": "identity_document_type",
+        "address_document_type": "address_document_type",
+        "certificate_type": "certificate_type",
+    }.items():
+        if file_type_field in form_data and form_data[file_type_field] not in (None, ""):
+            payload[db_field] = str(form_data[file_type_field])
+
+    if not payload:
+        raise HTTPException(status_code=400, detail="No profile data received")
+    return update_beekeeper_profile(beekeeper_id, payload)
 
 
 def delete_beekeeper_account(beekeeper_id: str) -> None:

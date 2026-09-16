@@ -4,24 +4,55 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.routing.routes import router as api_router
 
 load_dotenv()
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://honeychain-icix.onrender.com")
+DEFAULT_FRONTEND_URL = "https://honeychain-icix.onrender.com"
+LOCAL_FRONTEND_URLS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+
+def get_frontend_origins() -> list[str]:
+    env_list = os.getenv("FRONTEND_URLS")
+    if env_list:
+        origins = [origin.strip() for origin in env_list.split(",") if origin.strip()]
+        return origins
+
+    configured = os.getenv("FRONTEND_URL")
+    origins: list[str] = []
+    if configured:
+        origins.append(configured.strip())
+
+    for url in [DEFAULT_FRONTEND_URL, *LOCAL_FRONTEND_URLS]:
+        if url not in origins:
+            origins.append(url)
+
+    return origins
+
+
+FRONTEND_URLS = get_frontend_origins()
 PORT = int(os.getenv("PORT", "8000"))
 
 app = FastAPI(title="HoneyChain API", version="0.1.0")
 
 FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+UPLOAD_DIR = Path(__file__).resolve().parents[1] / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
+    allow_origins=FRONTEND_URLS,
     allow_credentials=True,
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
