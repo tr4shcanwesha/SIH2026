@@ -1,6 +1,7 @@
 backend/.env
 backend/.venv/
 backend/app/uploads/
+backend/app/main.py.corrupt-backup
 backend/**/__pycache__/
 *.py[cod]
 .venv/
