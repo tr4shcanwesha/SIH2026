@@ -13,6 +13,11 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
+
+def get_cookie_security() -> bool:
+    return os.getenv("APP_ENV", "production").strip().lower() == "production"
+
+
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 ADMIN_USERNAME = "honey"
@@ -81,6 +86,7 @@ def admin_login(
         value=session_id,
         httponly=True,
         samesite="lax",
+        secure=get_cookie_security(),
         max_age=3600,
     )
     return response
@@ -111,6 +117,7 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
         value=session_id,
         httponly=True,
         samesite="lax",
+        secure=get_cookie_security(),
         max_age=3600,
     )
     return response
