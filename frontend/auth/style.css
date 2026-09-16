@@ -48,6 +48,64 @@
 .google-button svg{width:20px;height:20px;background:var(--wax-50);border-radius:50%;padding:2px;}
 .google-button:hover{background:var(--gold-600);color:var(--comb-900);transform:translateY(-2px);}
 .auth-status{min-height:24px;margin:16px 0 0;color:var(--alert-rust);font-size:.88rem;}
+.success-state{
+  display:grid;
+  place-items:center;
+  text-align:center;
+  gap:18px;
+  padding:8px 0 4px;
+}
+.success-state[hidden]{display:none;}
+.success-icon{
+  width:76px;
+  height:76px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:linear-gradient(135deg, rgba(31,111,92,0.15), rgba(232,163,23,0.18));
+  color:var(--verified-teal);
+  font-size:2.2rem;
+  font-weight:800;
+  border:1px solid rgba(31,111,92,0.2);
+  box-shadow:0 10px 28px rgba(31,111,92,0.10);
+}
+.success-eyebrow{
+  margin:0;
+  color:var(--verified-teal);
+  font-size:.82rem;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:700;
+}
+.success-state h2{
+  margin:0;
+  font-size:2.15rem;
+  line-height:1.1;
+  color:var(--comb-900);
+}
+.success-copy{
+  margin:0;
+  max-width:32ch;
+  color:var(--ink-soft);
+  line-height:1.65;
+  font-size:1rem;
+}
+.success-actions{display:flex;justify-content:center;margin-top:6px;}
+.secondary-button{
+  border:1px solid rgba(42,27,15,0.18);
+  background:var(--wax-50);
+  color:var(--comb-900);
+  border-radius:999px;
+  padding:14px 22px;
+  font:600 .94rem var(--font-body);
+  cursor:pointer;
+  transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.secondary-button:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 20px rgba(42,27,15,0.08);
+  border-color:rgba(42,27,15,0.28);
+}
 .signed-in{margin-top:8px;padding:16px;background:rgba(31,111,92,.08);border-radius:12px;}
 .signed-in p{margin:10px 0 4px;font-weight:600;color:var(--comb-900);word-break:break-word;}
 .text-button{border:0;padding:0;background:none;color:var(--verified-teal);font:600 .88rem var(--font-body);cursor:pointer;}
@@ -56,4 +114,5 @@
   .auth-shell{padding:36px 18px;}
   .auth-card{padding:30px 24px;}
   .auth-card h1{font-size:2.2rem;}
+  .success-state h2{font-size:1.8rem;}
 }

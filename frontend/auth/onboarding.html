@@ -13,18 +13,47 @@
 <main class="auth-shell">
   <section class="auth-card" aria-labelledby="onboarding-title">
     <span class="eyebrow-tag"><span class="dot"></span> New beekeeper profile</span>
-    <h1 id="onboarding-title">Tell us about yourself.</h1>
-    <p class="auth-intro">We need these details to personalize your hive workspace and batch records.</p>
-    <form class="credentials-form" id="onboarding-form">
+    <div id="success-state" class="success-state" hidden>
+      <div class="success-icon" aria-hidden="true">✓</div>
+      <p class="success-eyebrow">Application received</p>
+      <h2>Application submitted, status pending</h2>
+      <p class="success-copy">Your beekeeper registration has been submitted successfully. Our review team will assess your details shortly and update your status.</p>
+      <div class="success-actions">
+        <button type="button" id="edit-application-btn" class="secondary-button">Edit details of application</button>
+      </div>
+    </div>
+
+    <div id="form-state">
+      <h1 id="onboarding-title">Tell us about yourself.</h1>
+      <p id="onboarding-message" class="auth-intro">We need these details to personalize your hive workspace and batch records.</p>
+      <p id="rejection-banner" class="auth-status" style="display:none; color:#c0392b; font-weight:600; margin-bottom:12px;">Previous application was rejected. Please review and resubmit.</p>
+      <form class="credentials-form" id="onboarding-form" enctype="multipart/form-data">
       <label for="name">Full name</label>
       <input id="name" name="name" type="text" autocomplete="name" required>
       <label for="phone">Phone number</label>
       <input id="phone" name="phone" type="tel" autocomplete="tel" required>
       <label for="location">Location</label>
       <input id="location" name="location" type="text" autocomplete="address-level2" required>
-      <button class="google-button" type="submit">Continue to dashboard</button>
+
+      <label for="identity_document_type">Identity document type</label>
+      <input id="identity_document_type" name="identity_document_type" type="text" placeholder="e.g. Aadhaar / PAN / Passport">
+      <label for="identity_document">Identity document file</label>
+      <input id="identity_document" name="identity_document" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
+
+      <label for="address_document_type">Address proof type</label>
+      <input id="address_document_type" name="address_document_type" type="text" placeholder="e.g. Electricity bill / Gas bill / Voter ID">
+      <label for="address_document">Address proof file</label>
+      <input id="address_document" name="address_document" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
+
+      <label for="certificate_type">Certificate type</label>
+      <input id="certificate_type" name="certificate_type" type="text" placeholder="e.g. Beekeeping certificate / training certificate">
+      <label for="certificate">Certificate file</label>
+      <input id="certificate" name="certificate" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
+
+      <button class="google-button" type="submit">Submit application</button>
       <p id="onboarding-status" class="auth-status" role="status"></p>
-    </form>
+      </form>
+    </div>
   </section>
 </main>
 <script src="/assets/auth/onboarding.js"></script>

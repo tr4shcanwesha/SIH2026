@@ -4,6 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.routing.routes import router as api_router
 
@@ -42,7 +43,10 @@ PORT = int(os.getenv("PORT", "8000"))
 app = FastAPI(title="HoneyChain API", version="0.1.0")
 
 FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+UPLOAD_DIR = Path(__file__).resolve().parents[1] / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,

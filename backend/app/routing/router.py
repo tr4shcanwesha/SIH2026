@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi import Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from app.auth.auth import has_admin_session
+from app.auth.auth import get_beekeeper_status_by_id, get_session_beekeeper_id, has_admin_session
 
 router = APIRouter()
 FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"
@@ -44,22 +44,34 @@ def auth_page() -> FileResponse:
 
 @router.get("/dashboard", include_in_schema=False, response_model=None)
 def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
-    if not has_admin_session(request.cookies.get("honeychain_session")):
+    session_id = request.cookies.get("honeychain_session")
+    if not has_admin_session(session_id):
         return RedirectResponse(url="/auth", status_code=303)
+    beekeeper_id = get_session_beekeeper_id(session_id)
+    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
+        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
     return HTMLResponse(render_dashboard_shell())
 
 
 @router.get("/onboarding", include_in_schema=False, response_model=None)
 def onboarding_page(request: Request) -> FileResponse | RedirectResponse:
-    if not has_admin_session(request.cookies.get("honeychain_session")):
+    session_id = request.cookies.get("honeychain_session")
+    if not has_admin_session(session_id):
         return RedirectResponse(url="/auth", status_code=303)
+    beekeeper_id = get_session_beekeeper_id(session_id)
+    if get_beekeeper_status_by_id(beekeeper_id) == "approved":
+        return RedirectResponse(url="/dashboard", status_code=303)
     return FileResponse(FRONTEND_DIR / "auth" / "onboarding.html")
 
 
 @router.get("/profile", include_in_schema=False, response_model=None)
 def profile_page(request: Request) -> FileResponse | RedirectResponse:
-    if not has_admin_session(request.cookies.get("honeychain_session")):
+    session_id = request.cookies.get("honeychain_session")
+    if not has_admin_session(session_id):
         return RedirectResponse(url="/auth", status_code=303)
+    beekeeper_id = get_session_beekeeper_id(session_id)
+    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
+        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
     return FileResponse(FRONTEND_DIR / "dashboard" / "profile.html")
 
 
