@@ -171,6 +171,14 @@ def dashboard_jar_image() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "src" / "images" / "jar.png")
 
 
+@router.get("/src/images/{filename}", include_in_schema=False)
+def serve_frontend_image(filename: str) -> FileResponse:
+    image_path = FRONTEND_DIR / "src" / "images" / filename
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(image_path)
+
+
 @router.get("/assets/verify/style.css", include_in_schema=False)
 def verify_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "style.css")
