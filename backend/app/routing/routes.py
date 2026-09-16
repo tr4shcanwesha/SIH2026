@@ -1,4 +1,5 @@
-from typing import Any, Literal
+import random
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -19,7 +20,6 @@ from app.services.batches import (
     list_batches,
     list_hives as list_hive_records,
     remove_hive as remove_hive_record,
-    update_batch_status,
 )
 from app.services.blockchain import get_batch_verification
 from app.services.beekeepers import (
@@ -43,12 +43,8 @@ class HiveCreate(BaseModel):
 
 class HoneyBatchCreate(BaseModel):
     hive_id: str
-    honey_type: str = "Wild Forest Honey"
-    quantity: float = Field(gt=0)
-
-
-class HoneyBatchStatusUpdate(BaseModel):
-    status: Literal["PROCESSED", "DISTRIBUTED"]
+    honey_type: str = "Golden Canopy Reserve"
+    quantity: float = Field(default_factory=lambda: round(random.uniform(10, 50), 2), gt=0)
 
 
 class BeekeeperProfileUpdate(BaseModel):
@@ -194,16 +190,6 @@ def list_honey_batches(request: Request) -> list[dict[str, Any]]:
 @router.get("/api/public/batches/{batch_id}")
 def get_public_batch(batch_id: str) -> dict[str, Any]:
     return get_batch_verification(batch_id)
-
-
-@router.patch("/api/honey-batches/{batch_id}")
-def update_honey_batch_status(
-    batch_id: str,
-    status_update: HoneyBatchStatusUpdate,
-    request: Request,
-) -> dict[str, Any]:
-    beekeeper_id = current_beekeeper_id(request)
-    return update_batch_status(batch_id, status_update.status, beekeeper_id)
 
 
 @router.delete("/api/hives/{hive_id}", status_code=204)

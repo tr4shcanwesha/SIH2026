@@ -98,6 +98,13 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
     return HTMLResponse(rendered_html)
 
 
+@router.get("/dashboard/batches/{batch_id}", include_in_schema=False, response_model=None)
+def batch_detail_page(request: Request, batch_id: str) -> FileResponse | RedirectResponse:
+    if not has_admin_session(request.cookies.get("honeychain_session")):
+        return RedirectResponse(url="/auth", status_code=303)
+    return FileResponse(FRONTEND_DIR / "dashboard" / "batch.html")
+
+
 @router.get("/verify", include_in_schema=False)
 def verify_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "verify.html")
@@ -151,6 +158,16 @@ def dashboard_styles() -> FileResponse:
 @router.get("/assets/dashboard/dashboard.js", include_in_schema=False)
 def dashboard_script() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "dashboard" / "dashboard.js")
+
+
+@router.get("/assets/dashboard/batch.css", include_in_schema=False)
+def batch_styles() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dashboard" / "batch.css")
+
+
+@router.get("/assets/dashboard/batch.js", include_in_schema=False)
+def batch_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dashboard" / "batch.js")
 
 
 @router.get("/assets/dashboard/db.png", include_in_schema=False)

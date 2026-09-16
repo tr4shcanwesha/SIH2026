@@ -105,79 +105,46 @@ const showHarvestToast = (message) => {
   }, 3000);
 };
 
-const addHarvestBatch = (harvestButton) => new Promise((resolve) => {
-  const modal = document.querySelector('#harvest-entry-modal');
-  const form = document.querySelector('#harvest-entry-form');
-  const quantityInput = document.querySelector('#harvest-quantity');
-  const honeyTypeInput = document.querySelector('#harvest-honey-type');
-  const error = document.querySelector('#harvest-entry-error');
-  const submitButton = form?.querySelector('.harvest-entry-submit');
-  if (!modal || !form || !quantityInput || !honeyTypeInput || !error || !submitButton) {
-    resolve(false);
-    return;
-  }
-
-  quantityInput.value = '';
-  honeyTypeInput.value = '';
-  error.textContent = '';
-  modal.hidden = false;
-  document.body.classList.add('harvest-entry-modal-open');
-  quantityInput.focus();
-
-  const finish = (result) => {
-    form.removeEventListener('submit', submit);
-    modal.querySelectorAll('[data-close-harvest-entry]').forEach((element) => {
-      element.removeEventListener('click', close);
-    });
-    modal.hidden = true;
-    document.body.classList.remove('harvest-entry-modal-open');
-    resolve(result);
-  };
-  const close = () => finish(false);
-  const submit = async (event) => {
-    event.preventDefault();
-    const quantity = Number(quantityInput.value);
-    const honeyType = honeyTypeInput.value.trim();
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      error.textContent = 'Quantity must be a positive number.';
-      quantityInput.focus();
-      return;
-    }
-    if (!honeyType) {
-      error.textContent = 'Honey type is required.';
-      honeyTypeInput.focus();
-      return;
-    }
-    submitButton.disabled = true;
-    error.textContent = '';
-    try {
-      const response = await fetch('/api/honey-batches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          hive_id: harvestButton.dataset.harvestHive,
-          honey_type: honeyType,
-          quantity,
-        }),
-      });
-      if (!response.ok) {
-        throw new Error('Honey batch could not be created.');
-      }
-      await response.json();
-      await loadHarvestBatches();
-      finish(true);
-      showHarvestToast('Harvest saved successfully.');
-    } catch (requestError) {
-      console.error('Failed to create honey batch:', requestError);
-      error.textContent = requestError.message;
-      submitButton.disabled = false;
-    }
-  };
-  form.addEventListener('submit', submit);
-  modal.querySelectorAll('[data-close-harvest-entry]').forEach((element) => {
-    element.addEventListener('click', close);
+const addHarvestBatch = async (harvestButton) => {
+  const response = await fetch('/api/honey-batches', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hive_id: harvestButton.dataset.harvestHive }),
   });
-});
+  if (!response.ok) {
+    throw new Error('Honey batch could not be created.');
+  }
+  await response.json();
+  await loadHarvestBatches();
+  showHarvestToast('Harvest saved. Processing details will appear after lab release.');
+  return true;
+};
+
+/*
+Legacy quantity/type entry flow intentionally retained here for reference.
+The active harvest action now creates a HARVESTED batch without asking the
+beekeeper for processing-only details.
+
+// const legacyHarvestEntry = (harvestButton) => new Promise((resolve) => {
+//   const modal = document.querySelector('#harvest-entry-modal');
+//   const form = document.querySelector('#harvest-entry-form');
+//   const quantityInput = document.querySelector('#harvest-quantity');
+//   const honeyTypeInput = document.querySelector('#harvest-honey-type');
+//   const error = document.querySelector('#harvest-entry-error');
+//   const submitButton = form?.querySelector('.harvest-entry-submit');
+//   if (!modal || !form || !quantityInput || !honeyTypeInput || !error || !submitButton) {
+//     resolve(false);
+//     return;
+//   }
+//   quantityInput.value = '';
+//   honeyTypeInput.value = '';
+//   error.textContent = '';
+//   modal.hidden = false;
+//   document.body.classList.add('harvest-entry-modal-open');
+//   quantityInput.focus();
+//   // Former submit validation and POST flow disabled intentionally.
+// });
+*/
 
 const startHarvestCooldown = (harvestButton) => {
   const cooldownEndsAt = Date.now() + harvestCooldownMs;
@@ -234,11 +201,14 @@ const renderHarvestBatches = () => {
     <span class="harvest-status ${statusClass[batchStatus] || 'status-harvested'}">
       <span class="harvest-status-dot"></span>${labelByStatus[batchStatus] || batchStatus}
     </span>`;
-  const actionMarkup = (batch, batchStatus) => batchStatus === 'HARVESTED'
-    ? `<button class="harvest-reference-action action-amber" type="button" data-process-batch="${batch.batch_id}">Mark Processed <span>›</span></button>`
-    : batchStatus === 'PROCESSED'
-      ? `<button class="harvest-reference-action action-outline" type="button" data-distribute-batch="${batch.batch_id}">Mark Distributed <span>›</span></button>`
-      : '<button class="harvest-reference-action action-done" type="button" disabled>Completed <span>✓</span></button>';
+  const actionMarkup = (batch, batchStatus) => {
+    return `<div class="batch-menu-wrap">
+      <button class="harvest-more-button" type="button" aria-label="Batch options" aria-expanded="false" data-batch-menu="${batch.batch_id}">⋮</button>
+      <div class="batch-menu" data-menu-for="${batch.batch_id}" hidden>
+        <button type="button" data-open-batch="${batch.batch_id}">Show details <span>↗</span></button>
+      </div>
+    </div>`;
+  };
   const batchMarkup = (batch) => {
     const batchStatus = String(batch.status).toUpperCase();
     const progress = progressByStatus[batchStatus] || 25;
@@ -254,12 +224,13 @@ const renderHarvestBatches = () => {
           ${batchStatusMarkup(batchStatus)}
           <a class="batch-verify-button" href="${verificationUrl}">Verify this batch</a>
         </div>
-        <div class="harvest-reference-progress">
+        <div class="harvest-reference-progress-cell">
+          ${actionMarkup(batch, batchStatus)}
+          <div class="harvest-reference-progress">
           <div class="harvest-reference-track"><span class="progress-${batchStatus.toLowerCase()}" style="width:${progress}%"></span></div>
           <small>${progress}%</small>
+          </div>
         </div>
-        ${actionMarkup(batch, batchStatus)}
-        <button class="harvest-more-button" type="button" aria-label="More batch options">⋮</button>
       </article>
       `;
   };
@@ -326,10 +297,15 @@ const renderHarvestBatches = () => {
   document.querySelectorAll('.batch-qr').forEach((element) => {
     element.setAttribute('role', 'button');
     element.setAttribute('tabindex', '0');
-    element.addEventListener('click', () => openQrLightbox(element));
+    element.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openQrLightbox(element);
+    });
     element.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
+        event.stopPropagation();
         openQrLightbox(element);
       }
     });
@@ -491,29 +467,22 @@ const initializeHarvestPage = () => {
   featuredList?.addEventListener('pointerup', finishCarouselDrag);
   featuredList?.addEventListener('pointercancel', finishCarouselDrag);
   harvestList.addEventListener('click', async (event) => {
-    const processButton = event.target.closest('[data-process-batch]');
-    const distributeButton = event.target.closest('[data-distribute-batch]');
-    const batchId = processButton?.dataset.processBatch || distributeButton?.dataset.distributeBatch;
-    if (!batchId) {
+    const menuButton = event.target.closest('[data-batch-menu]');
+    const openBatchButton = event.target.closest('[data-open-batch]');
+    if (openBatchButton) {
+      window.location.href = `/dashboard/batches/${encodeURIComponent(openBatchButton.dataset.openBatch)}`;
       return;
     }
-    const nextStatus = processButton ? 'PROCESSED' : 'DISTRIBUTED';
-    const actionButton = processButton || distributeButton;
-    actionButton.disabled = true;
-    try {
-      const response = await fetch(`/api/honey-batches/${encodeURIComponent(batchId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus }),
-      });
-      if (!response.ok) {
-        throw new Error('Honey batch status could not be updated.');
+    if (menuButton) {
+      const menu = harvestList.querySelector(`[data-menu-for="${menuButton.dataset.batchMenu}"]`);
+      const wasOpen = menu && !menu.hidden;
+      harvestList.querySelectorAll('.batch-menu').forEach((item) => { item.hidden = true; });
+      harvestList.querySelectorAll('[data-batch-menu]').forEach((item) => { item.setAttribute('aria-expanded', 'false'); });
+      if (menu && !wasOpen) {
+        menu.hidden = false;
+        menuButton.setAttribute('aria-expanded', 'true');
       }
-      await loadHarvestBatches();
-      renderHarvestBatches();
-    } catch (error) {
-      console.error('Failed to update honey batch status:', error);
-      actionButton.disabled = false;
+      return;
     }
   });
   loadHarvestBatches()
