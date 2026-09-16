@@ -21,6 +21,7 @@
 .auth-intro{font-size:1.02rem; margin:16px 0 28px;}
 .credentials-form{display:grid;gap:10px;}
 .credentials-form label{font-size:.82rem;font-weight:700;color:var(--comb-900);}
+.optional-label{font-size:.75rem;font-weight:500;color:var(--ink-soft);}
 .credentials-form input{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:10px;background:var(--wax-100);color:var(--ink);font:inherit;margin-bottom:8px;}
 .credentials-form input:focus{outline:3px solid rgba(31,111,92,.22);border-color:var(--verified-teal);}
 .auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--ink-soft);font-size:.8rem;}

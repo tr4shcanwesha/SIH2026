@@ -29,7 +29,7 @@ const populateForm = (beekeeper) => {
   onboardingForm.elements.address_document_type.value = beekeeper.address_document_type || '';
   onboardingForm.elements.certificate_type.value = beekeeper.certificate_type || '';
 
-  if (beekeeper.kyc_status === 'pending' && !isEditMode) {
+  if (beekeeper.kyc_status === 'pending' && beekeeper.profile_exists && !isEditMode) {
     showSuccessState();
     return;
   }

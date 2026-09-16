@@ -3,7 +3,15 @@ from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from app.auth.auth import active_sessions, get_session_beekeeper_id, router as auth_router
+from app.auth.auth import (
+    active_sessions,
+    activate_beekeeper_session,
+    create_beekeeper,
+    get_session_beekeeper_id,
+    get_session_email,
+    new_beekeeper_id,
+    router as auth_router,
+)
 from app.routing.router import router as page_router
 from app.services.batches import (
     add_hive as add_hive_record,
@@ -17,6 +25,7 @@ from app.services.blockchain import get_batch_verification
 from app.services.beekeepers import (
     delete_beekeeper_account,
     get_beekeeper_profile,
+    save_uploaded_file,
     update_beekeeper_profile,
     update_beekeeper_profile_with_uploads,
 )
@@ -55,12 +64,31 @@ def health() -> dict[str, str]:
 
 @router.get("/api/profile")
 def profile(request: Request) -> dict[str, Any]:
-    return get_beekeeper_profile(current_beekeeper_id(request))
+    beekeeper_id = get_session_beekeeper_id(request.cookies.get("honeychain_session"))
+    if beekeeper_id:
+        profile_data = get_beekeeper_profile(beekeeper_id)
+        profile_data["beekeeper"]["profile_exists"] = True
+        return profile_data
+    email = get_session_email(request.cookies.get("honeychain_session"))
+    if email:
+        return {
+            "beekeeper": {
+                "email": email,
+                "name": "",
+                "phone": "",
+                "location": "",
+                "kyc_status": "pending",
+                "profile_exists": False,
+            },
+            "stats": {"hives": 0, "harvested": 0, "processed": 0, "distributed": 0},
+        }
+    raise HTTPException(status_code=401, detail="Authentication required")
 
 
 @router.patch("/api/profile")
 async def update_profile(request: Request) -> dict[str, Any]:
-    beekeeper_id = current_beekeeper_id(request)
+    session_id = request.cookies.get("honeychain_session")
+    beekeeper_id = get_session_beekeeper_id(session_id)
     content_type = request.headers.get("content-type", "")
 
     if "multipart/form-data" in content_type:
@@ -71,9 +99,54 @@ async def update_profile(request: Request) -> dict[str, Any]:
                 payload[key] = value
             else:
                 payload[key] = value
+        if not beekeeper_id:
+            email = get_session_email(session_id)
+            if not email:
+                raise HTTPException(status_code=401, detail="Authentication required")
+            required_fields = (
+                "name",
+                "phone",
+                "location",
+                "identity_document_type",
+                "certificate_type",
+            )
+            missing_fields = [field for field in required_fields if not str(payload.get(field, "")).strip()]
+            if missing_fields:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Required onboarding fields missing: {', '.join(missing_fields)}",
+                )
+            identity_document = payload.get("identity_document")
+            if identity_document is None or not getattr(identity_document, "filename", ""):
+                raise HTTPException(status_code=400, detail="Identity document file is required")
+            certificate = payload.get("certificate")
+            if certificate is None or not getattr(certificate, "filename", ""):
+                raise HTTPException(status_code=400, detail="Certificate file is required")
+            new_id = new_beekeeper_id()
+            identity_document_path = await save_uploaded_file(identity_document, new_id, "identity_document")
+            certificate_path = await save_uploaded_file(certificate, new_id, "certificate")
+            profile_fields = {
+                field: str(payload[field]).strip()
+                for field in (
+                    "name",
+                    "phone",
+                    "location",
+                    "identity_document_type",
+                    "certificate_type",
+                )
+            }
+            profile_fields["identity_document_path"] = identity_document_path
+            profile_fields["certificate_path"] = certificate_path
+            profile_fields["beekeeper_id"] = new_id
+            beekeeper_id = create_beekeeper(email, profile_fields)
+            activate_beekeeper_session(session_id, beekeeper_id)
+            payload.pop("identity_document", None)
+            payload.pop("certificate", None)
         updated = await update_beekeeper_profile_with_uploads(beekeeper_id, payload)
         return get_beekeeper_profile(beekeeper_id)
 
+    if not beekeeper_id:
+        raise HTTPException(status_code=400, detail="Submit the onboarding form to create your profile")
     payload = await request.json()
     update_beekeeper_profile(beekeeper_id, payload)
     return get_beekeeper_profile(beekeeper_id)

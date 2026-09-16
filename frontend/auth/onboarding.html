@@ -36,19 +36,19 @@
       <input id="location" name="location" type="text" autocomplete="address-level2" required>
 
       <label for="identity_document_type">Identity document type</label>
-      <input id="identity_document_type" name="identity_document_type" type="text" placeholder="e.g. Aadhaar / PAN / Passport">
+      <input id="identity_document_type" name="identity_document_type" type="text" placeholder="e.g. Aadhaar / PAN / Passport" required>
       <label for="identity_document">Identity document file</label>
-      <input id="identity_document" name="identity_document" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
+      <input id="identity_document" name="identity_document" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
 
-      <label for="address_document_type">Address proof type</label>
-      <input id="address_document_type" name="address_document_type" type="text" placeholder="e.g. Electricity bill / Gas bill / Voter ID">
-      <label for="address_document">Address proof file</label>
+      <label for="address_document_type">Address proof type <span class="optional-label">(optional)</span></label>
+      <input id="address_document_type" name="address_document_type" type="text" placeholder="Only needed if your identity document has no current address">
+      <label for="address_document">Address proof file <span class="optional-label">(optional)</span></label>
       <input id="address_document" name="address_document" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
 
       <label for="certificate_type">Certificate type</label>
-      <input id="certificate_type" name="certificate_type" type="text" placeholder="e.g. Beekeeping certificate / training certificate">
+      <input id="certificate_type" name="certificate_type" type="text" placeholder="e.g. Beekeeping certificate / training certificate" required>
       <label for="certificate">Certificate file</label>
-      <input id="certificate" name="certificate" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf">
+      <input id="certificate" name="certificate" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
 
       <button class="google-button" type="submit">Submit application</button>
       <p id="onboarding-status" class="auth-status" role="status"></p>
