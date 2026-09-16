@@ -9,6 +9,7 @@ from app.auth.auth import (
     create_beekeeper,
     get_session_beekeeper_id,
     get_session_email,
+    new_beekeeper_id,
     router as auth_router,
 )
 from app.routing.router import router as page_router
@@ -24,6 +25,7 @@ from app.services.blockchain import get_batch_verification
 from app.services.beekeepers import (
     delete_beekeeper_account,
     get_beekeeper_profile,
+    save_uploaded_file,
     update_beekeeper_profile,
     update_beekeeper_profile_with_uploads,
 )
@@ -101,19 +103,45 @@ async def update_profile(request: Request) -> dict[str, Any]:
             email = get_session_email(session_id)
             if not email:
                 raise HTTPException(status_code=401, detail="Authentication required")
-            required_fields = ("name", "phone", "location", "identity_document_type")
+            required_fields = (
+                "name",
+                "phone",
+                "location",
+                "identity_document_type",
+                "certificate_type",
+            )
             missing_fields = [field for field in required_fields if not str(payload.get(field, "")).strip()]
             if missing_fields:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Required onboarding fields missing: {', '.join(missing_fields)}",
                 )
+            identity_document = payload.get("identity_document")
+            if identity_document is None or not getattr(identity_document, "filename", ""):
+                raise HTTPException(status_code=400, detail="Identity document file is required")
+            certificate = payload.get("certificate")
+            if certificate is None or not getattr(certificate, "filename", ""):
+                raise HTTPException(status_code=400, detail="Certificate file is required")
+            new_id = new_beekeeper_id()
+            identity_document_path = await save_uploaded_file(identity_document, new_id, "identity_document")
+            certificate_path = await save_uploaded_file(certificate, new_id, "certificate")
             profile_fields = {
                 field: str(payload[field]).strip()
-                for field in ("name", "phone", "location", "identity_document_type")
+                for field in (
+                    "name",
+                    "phone",
+                    "location",
+                    "identity_document_type",
+                    "certificate_type",
+                )
             }
+            profile_fields["identity_document_path"] = identity_document_path
+            profile_fields["certificate_path"] = certificate_path
+            profile_fields["beekeeper_id"] = new_id
             beekeeper_id = create_beekeeper(email, profile_fields)
             activate_beekeeper_session(session_id, beekeeper_id)
+            payload.pop("identity_document", None)
+            payload.pop("certificate", None)
         updated = await update_beekeeper_profile_with_uploads(beekeeper_id, payload)
         return get_beekeeper_profile(beekeeper_id)
 

@@ -1,6 +1,5 @@
 import os
 import re
-from pathlib import Path
 from typing import Any
 
 from fastapi import HTTPException, UploadFile
@@ -10,8 +9,7 @@ from app.auth.auth import supabase
 ALLOWED_UPLOAD_TYPES = {"image/jpeg", "image/png", "application/pdf"}
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
 MAX_FILE_SIZE = 5 * 1024 * 1024
-UPLOAD_ROOT = Path(__file__).resolve().parents[1] / "uploads"
-UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+STORAGE_BUCKET = os.getenv("SUPABASE_STORAGE_BUCKET", "kyc-documents")
 
 
 def sanitize_upload_name(filename: str) -> str:
@@ -40,15 +38,20 @@ def validate_uploaded_file(file: UploadFile) -> None:
 async def save_uploaded_file(file: UploadFile, beekeeper_id: str, field_name: str) -> str:
     validate_uploaded_file(file)
     file_name = sanitize_upload_name(file.filename or "document")
-    safe_name = f"{beekeeper_id}_{field_name}_{file_name}"
-    upload_path = UPLOAD_ROOT / safe_name
-    with upload_path.open("wb") as destination:
-        while True:
-            chunk = await file.read(1024 * 1024)
-            if not chunk:
-                break
-            destination.write(chunk)
-    return f"/uploads/{safe_name}"
+    storage_path = f"{beekeeper_id}/{field_name}/{file_name}"
+    file_bytes = await file.read()
+    try:
+        supabase.storage.from_(STORAGE_BUCKET).upload(
+            storage_path,
+            file_bytes,
+            {
+                "content-type": file.content_type or "application/octet-stream",
+                "upsert": "true",
+            },
+        )
+    except Exception as error:
+        raise HTTPException(status_code=502, detail="Document storage upload failed") from error
+    return storage_path
 
 
 def get_beekeeper_profile(beekeeper_id: str) -> dict[str, Any]:
@@ -135,7 +138,7 @@ async def update_beekeeper_profile_with_uploads(beekeeper_id: str, form_data: di
 
     for file_field, db_field in document_map.items():
         file_value = form_data.get(file_field)
-        if file_value is not None and hasattr(file_value, "filename"):
+        if file_value is not None and getattr(file_value, "filename", ""):
             uploaded_url = await save_uploaded_file(file_value, beekeeper_id, file_field)
             payload[db_field] = uploaded_url
 

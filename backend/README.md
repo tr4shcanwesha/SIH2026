@@ -18,6 +18,7 @@ Fill `.env` with values from the Supabase project dashboard, then run:
 $env:SUPABASE_URL = "https://your-project-ref.supabase.co"
 $env:SUPABASE_ANON_KEY = "your-supabase-anon-key"
 $env:SUPABASE_SERVICE_ROLE_KEY = "your-supabase-service-role-key"
+$env:SUPABASE_STORAGE_BUCKET = "kyc-documents"
 $env:FRONTEND_URL = "https://honeychain-icix.onrender.com"
 $env:PORT = "8000"
 uvicorn app.main:app --reload --host 0.0.0.0 --port $env:PORT
@@ -35,6 +36,11 @@ Enable Google under Supabase Dashboard > Authentication > Providers > Google, an
 
 The FastAPI server serves both the API and the frontend. Open the application at
 `https://honeychain-icix.onrender.com/`; no separate frontend server is needed.
+
+Create a private Supabase Storage bucket named `kyc-documents` before submitting
+applications. Configure its file limit as 5 MB and allow JPG, JPEG, PNG, and PDF
+files. The backend uploads documents to this bucket and stores only their storage
+paths in `public.beekeeper`; files are not stored on the server filesystem.
 
 For the prototype admin login, use:
 

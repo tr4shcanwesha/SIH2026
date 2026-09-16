@@ -26,13 +26,17 @@ active_sessions: dict[str, str] = {}
 pending_sessions: dict[str, str] = {}
 
 
+def new_beekeeper_id() -> str:
+    return f"bk_{secrets.token_hex(8)}"
+
+
 def find_beekeeper(email: str) -> Optional[dict]:
     existing = supabase.table("beekeeper").select("*").eq("email", email).limit(1).execute()
     return existing.data[0] if existing.data else None
 
 
 def create_beekeeper(email: str, profile: dict[str, str]) -> str:
-    beekeeper_id = f"bk_{secrets.token_hex(8)}"
+    beekeeper_id = profile.pop("beekeeper_id", new_beekeeper_id())
     record = {
         "beekeeper_id": beekeeper_id,
         "email": email,
