@@ -23,33 +23,28 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 ADMIN_USERNAME = "honey"
 ADMIN_PASSWORD = "chain"
 active_sessions: dict[str, str] = {}
+pending_sessions: dict[str, str] = {}
 
 
-def get_or_create_beekeeper(email: str) -> tuple[str, bool]:
+def find_beekeeper(email: str) -> Optional[dict]:
     existing = supabase.table("beekeeper").select("*").eq("email", email).limit(1).execute()
-    if existing.data:
-        return existing.data[0]["beekeeper_id"], False
+    return existing.data[0] if existing.data else None
 
+
+def create_beekeeper(email: str, profile: dict[str, str]) -> str:
     beekeeper_id = f"bk_{secrets.token_hex(8)}"
+    record = {
+        "beekeeper_id": beekeeper_id,
+        "email": email,
+        "kyc_status": "pending",
+        **profile,
+    }
     response = supabase.table("beekeeper").insert(
-        {
-            "beekeeper_id": beekeeper_id,
-            "name": "",
-            "email": email,
-            "phone": "",
-            "location": "",
-            "kyc_status": "pending",
-            "identity_document_type": None,
-            "identity_document_path": None,
-            "address_document_type": None,
-            "address_document_path": None,
-            "certificate_type": None,
-            "certificate_path": None,
-        }
+        record
     ).execute()
     if not response.data:
         raise RuntimeError("Beekeeper profile could not be created")
-    return beekeeper_id, True
+    return beekeeper_id
 
 
 def get_beekeeper_status(email: str) -> str:
@@ -77,11 +72,20 @@ def create_admin_session() -> str:
 
 
 def has_admin_session(session_id: Optional[str]) -> bool:
-    return bool(session_id and session_id in active_sessions)
+    return bool(session_id and (session_id in active_sessions or session_id in pending_sessions))
 
 
 def get_session_beekeeper_id(session_id: Optional[str]) -> Optional[str]:
     return active_sessions.get(session_id) if session_id else None
+
+
+def get_session_email(session_id: Optional[str]) -> Optional[str]:
+    return pending_sessions.get(session_id) if session_id else None
+
+
+def activate_beekeeper_session(session_id: str, beekeeper_id: str) -> None:
+    pending_sessions.pop(session_id, None)
+    active_sessions[session_id] = beekeeper_id
 
 
 @router.get("/config")
@@ -108,12 +112,16 @@ def admin_login(
             status_code=401,
         )
 
-    beekeeper_id, is_new = get_or_create_beekeeper(os.getenv("ADMIN_EMAIL", "honey@honeychain.local"))
-    status = get_beekeeper_status(os.getenv("ADMIN_EMAIL", "honey@honeychain.local"))
-    destination = "/dashboard" if status == "approved" else "/onboarding"
+    email = os.getenv("ADMIN_EMAIL", "honey@honeychain.local")
+    beekeeper = find_beekeeper(email)
+    status = get_beekeeper_status(email) if beekeeper else "pending"
+    destination = "/dashboard" if status == "approved" else "/onboarding?edit=1"
     response = RedirectResponse(url=destination, status_code=303)
     session_id = secrets.token_urlsafe(32)
-    active_sessions[session_id] = beekeeper_id
+    if beekeeper:
+        activate_beekeeper_session(session_id, beekeeper["beekeeper_id"])
+    else:
+        pending_sessions[session_id] = email
     response.set_cookie(
         key="honeychain_session",
         value=session_id,
@@ -142,17 +150,21 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
         )
 
     email = user.user.email or "google-user@honeychain.local"
-    beekeeper_id, is_new = get_or_create_beekeeper(email)
-    status = get_beekeeper_status(email)
-    if status == "approved":
+    beekeeper = find_beekeeper(email)
+    if not beekeeper:
+        destination = "/onboarding?edit=1"
+    elif beekeeper.get("kyc_status") == "approved":
         destination = "/dashboard"
-    elif status == "rejected":
+    elif beekeeper.get("kyc_status") == "rejected":
         destination = "/onboarding?status=rejected"
     else:
-        destination = "/onboarding?status=pending" if not is_new else "/onboarding?status=pending"
+        destination = "/onboarding?status=pending"
     response = RedirectResponse(url=destination, status_code=303)
     session_id = secrets.token_urlsafe(32)
-    active_sessions[session_id] = beekeeper_id
+    if beekeeper:
+        activate_beekeeper_session(session_id, beekeeper["beekeeper_id"])
+    else:
+        pending_sessions[session_id] = email
     response.set_cookie(
         key="honeychain_session",
         value=session_id,
@@ -168,6 +180,7 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
 def admin_logout(request: Request) -> RedirectResponse:
     session_id = request.cookies.get("honeychain_session")
     active_sessions.pop(session_id, None)
+    pending_sessions.pop(session_id, None)
     response = RedirectResponse(url="/", status_code=303)
     response.delete_cookie("honeychain_session")
     return response
