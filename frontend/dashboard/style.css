@@ -288,13 +288,14 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
 .harvest-progress span{display:block; height:100%; border-radius:inherit; background:var(--alert-rust); transition:width .8s cubic-bezier(.22,1,.36,1);}
 .harvest-card-action{margin-top:16px;}
 .harvest-card-action .status-pill{display:inline-block;}
-.harvest-reference-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(300px,1.8fr) minmax(170px,2fr) auto 38px;align-items:center;gap:20px;padding:18px 20px;border-top:1px solid var(--line);overflow:hidden;}
+.harvest-reference-row{display:grid;grid-template-columns:minmax(220px,2fr) minmax(300px,1.8fr) minmax(170px,2fr);align-items:center;gap:20px;padding:18px 20px;border-top:1px solid var(--line);overflow:visible;}
 .harvest-reference-id{display:flex;align-items:center;gap:12px;min-width:0;}
 .harvest-reference-hex{width:44px;height:44px;border:1px solid rgba(199,134,11,.35);border-radius:13px;background:rgba(232,163,23,.16);display:grid;place-items:center;overflow:hidden;box-shadow:0 3px 8px rgba(42,27,15,.08);flex:none;}
 .harvest-reference-hex img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit;}
 .harvest-reference-id > div:last-child{min-width:0;}
 .harvest-reference-id strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.88rem;}
 .harvest-reference-id small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-soft);font-size:.7rem;margin-top:2px;}
+.harvest-reference-progress-cell{display:flex;flex-direction:column;gap:8px;min-width:0;}
 .harvest-reference-progress{display:flex;align-items:center;gap:10px;min-width:0;width:100%;}
 .harvest-reference-track{height:8px;flex:1;overflow:hidden;border-radius:6px;background:var(--wax-100);}
 .harvest-reference-track span{display:block;height:100%;border-radius:inherit;background:var(--alert-rust);transition:width .8s cubic-bezier(.22,1,.36,1);}
@@ -306,7 +307,15 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
 .action-amber{background:var(--gold-500);color:var(--comb-900);}
 .action-outline{background:var(--wax-50);border-color:var(--gold-600);color:var(--gold-600);}
 .action-done{background:rgba(91,74,56,.12);color:var(--ink-soft);cursor:default;}
+.batch-menu-wrap{position:relative;align-self:flex-end;}
 .harvest-more-button{width:34px;height:34px;border:1px solid var(--line);border-radius:50%;background:var(--wax-50);color:var(--ink-soft);cursor:pointer;font-size:1rem;}
+.harvest-more-button:hover:not(:disabled),.harvest-more-button[aria-expanded="true"]{background:var(--gold-500);color:var(--comb-900);}
+.harvest-more-button.is-disabled,.harvest-more-button:disabled{background:rgba(91,74,56,.08);color:rgba(91,74,56,.45);cursor:not-allowed;}
+.batch-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:10;min-width:145px;padding:5px;background:var(--wax-50);border:1px solid var(--line);border-radius:9px;box-shadow:var(--shadow-soft);}
+.batch-menu[hidden]{display:none;}
+.batch-menu button{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;border-radius:6px;padding:9px 10px;background:transparent;color:var(--comb-900);cursor:pointer;font:600 .72rem var(--font-body);text-align:left;}
+.batch-menu button:hover{background:rgba(232,163,23,.14);}
+.batch-menu button span{font-size:1rem;color:var(--verified-teal);}
 .batch-verification{display:flex;align-items:center;gap:10px;min-width:0;white-space:nowrap;}
 .batch-verification .harvest-status{margin-bottom:0;}
 .batch-qr{width:40px;height:40px;flex:none;background:var(--wax-50);padding:3px;border:1px solid var(--line);border-radius:7px;}
@@ -377,7 +386,7 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
   .harvest-reference-row{grid-template-columns:1fr;gap:12px;padding:16px 18px;}
   .batch-verification{justify-self:start;}
   .harvest-reference-action{justify-self:start;}
-  .harvest-more-button{display:none;}
+  .harvest-more-button{display:block;}
   .add-hive-fields{grid-template-columns:repeat(2,1fr);}
   .hive-list-item{grid-template-columns:1fr; gap:14px;}
   .hive-metrics{grid-template-columns:repeat(4,1fr);}

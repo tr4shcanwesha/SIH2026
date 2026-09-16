@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batch Passport - HoneyChain</title>
+<link rel="icon" type="image/png" href="/src/images/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/dashboard/batch.css">
+</head>
+<body>
+<header class="passport-nav">
+  <a class="passport-brand" href="/dashboard"><img src="/src/images/logo.png" alt=""> HoneyChain</a>
+  <a class="back-link" href="/dashboard/my-harvest">Back to harvest <span>↗</span></a>
+</header>
+<main class="passport-shell" id="batch-app" data-batch-id="">
+  <section class="passport-hero">
+    <div class="hero-copy">
+      <p class="eyebrow"><span class="live-dot"></span> Batch passport <span id="sync-label">Manual refresh</span></p>
+      <h1 id="batch-title">Loading your batch<span>.</span></h1>
+      <p class="hero-intro">One traceable story from the hive, through the collection center, to its final destination.</p>
+    </div>
+    <div class="hero-stamp"><div class="stamp-ring">HC</div><span>Chain<br>verified</span></div>
+  </section>
+
+  <section class="passport-card identity-card">
+    <div class="identity-top"><div><span class="micro-label">Batch identity</span><h2 id="batch-id">HB-........</h2></div><div class="status-chip" id="status-chip">Loading</div></div>
+    <div class="identity-grid">
+      <div><span>Honey profile</span><strong id="honey-type">-</strong></div>
+      <div><span>Harvested</span><strong id="harvest-date">-</strong></div>
+      <div><span>Volume secured</span><strong id="quantity">-</strong></div>
+      <div><span>Hive origin</span><strong id="hive-id">-</strong></div>
+    </div>
+  </section>
+
+  <section class="story-grid">
+    <div class="passport-card journey-card">
+      <div class="section-heading"><div><span class="micro-label">Traceability</span><h2>The journey so far</h2></div><span class="mono-label" id="poll-label">MANUAL REFRESH</span></div>
+      <div class="journey-rail" id="journey-rail"></div>
+      <div class="chain-note"><span>⌁</span><div><strong>Ledger linked</strong><p>Every status movement is attached to this batch's blockchain trail.</p></div></div>
+    </div>
+    <aside class="origin-card">
+      <div class="origin-glow"></div><span class="micro-label">Collected from</span><h2 id="origin-location">Your apiary</h2><p id="origin-species">Hive details loading...</p>
+      <div class="origin-mark">◌</div><div class="origin-footer"><span>Beekeeper</span><strong id="beekeeper-name">-</strong></div>
+    </aside>
+  </section>
+
+  <section class="lab-section" id="lab-section" hidden>
+    <div class="lab-heading"><div><span class="eyebrow gold">Collection center release</span><h2>Pure by measure.</h2><p>Independent lab readings attached to this batch after processing.</p></div><button class="certificate-button" id="certificate-button" type="button"><span>↓</span> Download certificate</button></div>
+    <div class="lab-grid">
+      <div class="lab-feature"><span class="micro-label">Quality grade</span><strong>A+</strong><span class="grade-note">Premium raw honey</span><div class="grade-line"><i></i></div><small>Released for distribution</small></div>
+      <div class="lab-reading"><span class="reading-icon">B</span><div><span>Moisture content</span><strong>17.4<span>%</span></strong><small>Within premium range &lt; 18.0%</small></div></div>
+      <div class="lab-reading"><span class="reading-icon">pH</span><div><span>Acidity profile</span><strong>4.1</strong><small>Natural floral signature</small></div></div>
+      <div class="lab-reading"><span class="reading-icon">HMF</span><div><span>Freshness marker</span><strong>8.6<span> mg/kg</span></strong><small>Excellent freshness</small></div></div>
+      <div class="lab-reading"><span class="reading-icon">OK</span><div><span>Adulteration screen</span><strong>Clear</strong><small>Authenticity verified</small></div></div>
+    </div>
+    <div class="lab-foot"><span>Report reference <b id="report-reference">HC-LAB-........</b></span><span>Released <b id="processed-date">-</b></span></div>
+  </section>
+
+  <section class="distribution-section" id="distribution-section" hidden>
+    <div><span class="eyebrow teal">Final mile unlocked</span><h2>This batch is on its way.</h2><p>Distribution has been recorded. The provenance stays attached wherever this honey travels.</p></div>
+    <div class="dispatch-route"><div class="route-point done"><span>01</span><b>Collection center</b><small>Quality released</small></div><div class="route-line"></div><div class="route-point done"><span>02</span><b>Distributed</b><small id="distributed-date">Recorded today</small></div><div class="route-line muted"></div><div class="route-point"><span>03</span><b>Market destination</b><small>Traceable by QR</small></div></div>
+  </section>
+  <p class="error-message" id="error-message" hidden></p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="/assets/dashboard/batch.js"></script>
+</body>
+</html>
