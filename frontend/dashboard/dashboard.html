@@ -252,6 +252,16 @@
 <script src="/assets/auth/session.js"></script>
 <script src="/assets/auth/logout.js"></script>
 <script src="/assets/dashboard/dashboard.js"></script>
+<script>
+  fetch('/api/profile')
+    .then((response) => response.ok ? response.json() : null)
+    .then((payload) => {
+      const welcome = document.querySelector('#dashboard-welcome');
+      const name = payload?.beekeeper?.name?.trim();
+      if (welcome && name) welcome.textContent = `Welcome back, ${name}`;
+    })
+    .catch(() => undefined);
+</script>
 
 </body>
 </html>
