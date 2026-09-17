@@ -17,6 +17,7 @@
       <img src="/src/images/logo.png" alt="HoneyChain logo" class="brand-logo">
       HoneyChain
     </a>
+    <a class="back-link" href="/verify">Back to verification</a>
   </div>
 </nav>
 
@@ -69,12 +70,21 @@
     </div>
     <div id="verified-record" hidden>
       <div class="verify-badge" id="verify-badge"></div>
+      <div class="record-head"><div><span class="record-kicker">Verified batch passport</span><h2 id="record-title">Honey batch</h2></div><span class="record-id" id="record-id"></span></div>
+      <div class="overview-grid" id="overview-details"></div>
+      <div class="section-divider"><span>Traceable origin</span></div>
       <h2>Batch record</h2>
       <div class="trace-grid" id="batch-details"></div>
       <h2>Hive details</h2>
       <div class="trace-grid" id="hive-details"></div>
       <h2>Beekeeper details</h2>
       <div class="trace-grid" id="beekeeper-details"></div>
+      <section class="consumer-lab" id="consumer-lab" hidden>
+        <div class="section-heading"><div><span class="eyebrow-tag"><span class="dot"></span> Lab release</span><h2>Purity, measured.</h2></div><button class="certificate-button" id="certificate-button" type="button">Open PDF certificate</button></div>
+        <p class="lab-intro">Static laboratory readings are attached to the issued certificate for this processed batch.</p>
+        <div class="lab-grid" id="lab-details"></div>
+        <p class="certificate-status" id="certificate-status" role="status"></p>
+      </section>
       <button class="timeline-button" id="timeline-button" type="button" aria-expanded="false">Show blockchain timeline</button>
       <div class="timeline" id="timeline" hidden></div>
     </div>
@@ -89,9 +99,16 @@
   const tamperAlert = document.querySelector('#tamper-alert');
   const verifiedRecord = document.querySelector('#verified-record');
   const verifyBadge = document.querySelector('#verify-badge');
+  const recordTitle = document.querySelector('#record-title');
+  const recordId = document.querySelector('#record-id');
+  const overviewDetails = document.querySelector('#overview-details');
   const batchDetails = document.querySelector('#batch-details');
   const hiveDetails = document.querySelector('#hive-details');
   const beekeeperDetails = document.querySelector('#beekeeper-details');
+  const consumerLab = document.querySelector('#consumer-lab');
+  const labDetails = document.querySelector('#lab-details');
+  const certificateButton = document.querySelector('#certificate-button');
+  const certificateStatus = document.querySelector('#certificate-status');
   const timelineButton = document.querySelector('#timeline-button');
   const timeline = document.querySelector('#timeline');
   const bannerBatchId = document.querySelector('#banner-batch-id');
@@ -100,8 +117,12 @@
     BATCH_CREATED: 'Harvested',
     STATUS_PROCESSED: 'Processed',
     STATUS_DISTRIBUTED: 'Distributed',
+    CERTIFICATE_ISSUED: 'Certificate issued',
   };
-  const lifecycleEvents = ['BATCH_CREATED', 'STATUS_PROCESSED', 'STATUS_DISTRIBUTED'];
+  const lifecycleEvents = ['BATCH_CREATED', 'STATUS_PROCESSED', 'CERTIFICATE_ISSUED', 'STATUS_DISTRIBUTED'];
+  const escapeHtml = (value) => String(value ?? 'Not provided').replace(/[&<>"']/g, (character) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[character]));
+  const formatIndiaDate = (value) => value ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }).format(new Date(value)) : 'Not provided';
+  const formatIndiaDateTime = (value) => value ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true, timeZone: 'Asia/Kolkata' }).format(new Date(value)) : 'Not provided';
 
   const renderBatch = (payload) => {
     const verification = payload.verification;
@@ -113,8 +134,10 @@
     currentBlocks = [];
     if (!isVerified) {
       batchDetails.replaceChildren();
+      overviewDetails.replaceChildren();
       hiveDetails.replaceChildren();
       beekeeperDetails.replaceChildren();
+      consumerLab.hidden = true;
       timeline.replaceChildren();
       timeline.hidden = true;
       lookupStatus.textContent = 'Verification failed. The record is hidden.';
@@ -123,14 +146,26 @@
     const batch = payload.batch;
     const hive = payload.hive;
     const beekeeper = payload.beekeeper;
+    const certificate = payload.certificate;
     currentBlocks = Array.isArray(payload.blocks) ? payload.blocks : [];
     verifyBadge.textContent = 'Authentic — confirmed on HoneyChain ledger';
     verifyBadge.classList.remove('verification-failed');
+    const displayHoneyType = batch.honey_type || 'Raw honey';
+    const statusLabel = String(batch.status || 'HARVESTED').toLowerCase();
+    recordTitle.textContent = displayHoneyType;
+    recordId.textContent = batch.batch_id;
+    overviewDetails.innerHTML = [
+      ['Current status', statusLabel, 'status-value'],
+      ['Harvested', formatIndiaDate(batch.harvest_date), ''],
+      ['Quantity', `${batch.quantity} kg`, ''],
+      ['Hive origin', hive.location || 'Registered apiary', ''],
+      ['Quality grade', certificate?.results?.quality_grade || 'Pending processing', ''],
+    ].map(([label, value, className]) => `<div class="overview-item ${className}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join('');
     batchDetails.innerHTML = [
       ['Batch ID', batch.batch_id],
       ['Hive ID', batch.hive_id],
       ['Honey type', batch.honey_type],
-      ['Harvest date', batch.harvest_date],
+      ['Harvest date', formatIndiaDate(batch.harvest_date)],
       ['Quantity', batch.quantity],
       ['Status', batch.status],
     ].map(([label, value]) => `<div class="trace-row"><span>${label}</span><span>${value}</span></div>`).join('');
@@ -149,14 +184,37 @@
       ['Phone', beekeeper.phone],
       ['Location', beekeeper.location],
     ].map(([label, value]) => `<div class="trace-row"><span>${label}</span><span>${value ?? 'Not provided'}</span></div>`).join('');
+    consumerLab.hidden = !certificate;
+    if (certificate) {
+      const results = certificate.results || {};
+      labDetails.innerHTML = [
+        ['Purity screen', results.adulteration_screen],
+        ['Moisture', `${results.moisture_percent}%`],
+        ['pH', results.ph],
+        ['HMF freshness', `${results.hmf_mg_per_kg} mg/kg`],
+        ['Pollen profile', results.pollen_profile],
+        ['Quality grade', results.quality_grade],
+      ].map(([label, value]) => `<div class="lab-cell"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`).join('');
+      certificateButton.textContent = 'Open PDF certificate';
+      certificateStatus.textContent = `Issued ${formatIndiaDateTime(certificate.issued_at)} · ${certificate.certificate_id}`;
+    }
     timeline.hidden = true;
     timelineButton.setAttribute('aria-expanded', 'false');
     timelineButton.textContent = `Show blockchain timeline (${lifecycleEvents.length} stages)`;
   };
 
+  certificateButton.addEventListener('click', () => {
+    const batchId = batchIdInput.value.trim();
+    window.open(`/api/public/batches/${encodeURIComponent(batchId)}/certificate`, '_blank', 'noopener');
+    certificateStatus.textContent = 'Opening the stored PDF certificate...';
+  });
+
   const loadBatch = async (batchId) => {
     lookupStatus.textContent = `Loading batch ${batchId}...`;
-    const response = await fetch(`/api/public/batches/${encodeURIComponent(batchId)}`);
+    const requestUrl = `/api/public/batches/${encodeURIComponent(batchId)}`;
+    const response = await fetch(requestUrl, {
+      cache: 'no-store',
+    });
     if (!response.ok) {
       throw new Error('No batch with that ID was found.');
     }
@@ -185,8 +243,7 @@
         return block
           ? `<article class="timeline-event">
               <div class="timeline-marker">${index + 1}</div>
-              <div><strong>${timelineLabels[eventType]}</strong><time>${new Date(block.timestamp).toLocaleString()}</time>
-              <div class="hash-box">Data: ${block.data_hash}<br>Block: ${block.block_hash}<br>Previous: ${block.previous_hash || 'GENESIS'}</div></div>
+              <div><strong>${timelineLabels[eventType]}</strong><time>${formatIndiaDateTime(block.timestamp)}</time><small class="timeline-note">Recorded on the HoneyChain ledger</small></div>
             </article>`
           : `<article class="timeline-event timeline-event-pending">
               <div class="timeline-marker">${index + 1}</div>

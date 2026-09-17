@@ -3,3 +3,4 @@ supabase
 uvicorn[standard]
 python-dotenv
 python-multipart
+reportlab
