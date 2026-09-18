@@ -628,6 +628,7 @@ const loadDashboardView = async (viewName, updateHistory = false) => {
     loadDashboardProfile().catch(() => {});
     initializeHivePage();
     initializeHarvestPage();
+    initializeAssistant();
     if (updateHistory) {
       window.history.pushState({ viewName }, '', route);
     }
@@ -655,6 +656,8 @@ window.addEventListener('popstate', () => {
   const viewName = window.location.pathname.split('/').pop() || 'overview';
   loadDashboardView(viewName);
 });
+
+initializeAssistant();
 
 const initializeHivePage = () => {
   const hiveList = document.querySelector('#hive-list');

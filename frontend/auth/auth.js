@@ -1,6 +1,21 @@
 const googleButton = document.querySelector('#google-sign-in');
 const googleStatus = document.querySelector('#google-status');
 
+function createSupabaseClient() {
+  return window.supabase.createClient(
+    window.__HONEYCHAIN_SUPABASE_URL,
+    window.__HONEYCHAIN_SUPABASE_ANON_KEY,
+    {
+      auth: {
+        persistSession: true,
+        storage: window.localStorage,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    }
+  );
+}
+
 async function startGoogleSignIn() {
   googleButton.disabled = true;
   googleStatus.textContent = '';
@@ -10,10 +25,9 @@ async function startGoogleSignIn() {
     if (!configResponse.ok) throw new Error('Authentication is unavailable.');
 
     const config = await configResponse.json();
-    const supabaseClient = window.supabase.createClient(
-      config.supabase_url,
-      config.supabase_anon_key
-    );
+    window.__HONEYCHAIN_SUPABASE_URL = config.supabase_url;
+    window.__HONEYCHAIN_SUPABASE_ANON_KEY = config.supabase_anon_key;
+    const supabaseClient = createSupabaseClient();
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: new URL('/auth', window.location.origin).href }
@@ -35,10 +49,9 @@ async function exchangeGoogleSession() {
   if (!configResponse.ok) return;
 
   const config = await configResponse.json();
-  const supabaseClient = window.supabase.createClient(
-    config.supabase_url,
-    config.supabase_anon_key
-  );
+  window.__HONEYCHAIN_SUPABASE_URL = config.supabase_url;
+  window.__HONEYCHAIN_SUPABASE_ANON_KEY = config.supabase_anon_key;
+  const supabaseClient = createSupabaseClient();
   const { data: { session } } = await supabaseClient.auth.getSession();
 
   if (!session?.access_token) return;

@@ -1,13 +1,24 @@
-<div class="dash-top">
-  <div><h2>AI assistant</h2><p style="margin:0; color:var(--ink-soft); font-size:0.92rem;">Ask about hive health, alerts, and expected yield</p></div>
-  <div class="select-fake">HoneyChain AI</div>
-</div>
-<div class="panel">
-  <h4>Suggested actions</h4>
-  <p class="sub">Based on the latest sensor readings</p>
-  <div class="alert-list">
-    <div class="alert-item"><span class="alert-dot dot-warn"></span><div>Inspect Hive 04 within 48 hours for possible varroa mite stress.</div></div>
-    <div class="alert-item"><span class="alert-dot dot-warn"></span><div>Check forage availability around Hive 06 after its recent weight drop.</div></div>
-    <div class="alert-item"><span class="alert-dot dot-good"></span><div>Hive 07 is ready for a harvest assessment in approximately 10 days.</div></div>
+<section class="assistant-shell" id="assistant-shell">
+  <div class="assistant-hero">
+    <div><p class="assistant-eyebrow"><span class="assistant-live-dot"></span> HoneyChain intelligence</p><h2>Good decisions start with a clear view.</h2><p>Ask about your hives, harvests, processing queue, or what deserves attention next. The assistant reads your current workspace context.</p></div>
+    <div class="assistant-mark" aria-label="HoneyChain AI assistant logo">
+      <img src="/src/images/logo.png" alt="HoneyChain logo" />
+    </div>
   </div>
-</div>
+  <div class="assistant-layout">
+    <aside class="assistant-sidebar">
+      <div class="assistant-side-label">Try asking</div>
+      <button type="button" data-prompt="Which batches are ready to be processed?">Processing queue <span>↗</span></button>
+      <button type="button" data-prompt="Give me a concise overview of my apiary.">Apiary overview <span>↗</span></button>
+      <button type="button" data-prompt="What should I prioritize this week based on my current data?">This week's priorities <span>↗</span></button>
+      <button type="button" data-prompt="Explain how I can improve traceability for my next harvest.">Traceability tips <span>↗</span></button>
+      <div class="assistant-data-note"><span class="assistant-shield">✦</span><div><strong>Private workspace context</strong><p>Your answers use your current profile, hives, and batches. No API key is exposed in the browser.</p></div></div>
+    </aside>
+    <div class="assistant-panel">
+      <div class="assistant-panel-head"><div><span class="assistant-panel-kicker">Conversation</span><strong>HoneyChain Copilot</strong></div><span class="assistant-status" id="assistant-status"><i></i> Live workspace context · Ready</span></div>
+      <div class="assistant-thread" id="assistant-thread"><article class="assistant-message assistant"><div class="assistant-avatar">HC</div><div class="assistant-bubble"><strong>Welcome to your field desk.</strong><br>What would you like to understand about your operation today?</div></article></div>
+      <form class="assistant-composer" id="assistant-form"><textarea id="assistant-input" rows="1" maxlength="4000" placeholder="Ask about your hives, harvests, or next move..." aria-label="Ask HoneyChain Copilot"></textarea><button id="assistant-send" type="submit" aria-label="Send message" title="Send message"><span>↗</span></button></form>
+      <p class="assistant-disclaimer">AI guidance can be incomplete. Confirm urgent hive health decisions with a qualified local expert.</p>
+    </div>
+  </div>
+</section>

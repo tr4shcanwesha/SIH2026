@@ -20,7 +20,9 @@ $env:SUPABASE_ANON_KEY = "your-supabase-anon-key"
 $env:SUPABASE_SERVICE_ROLE_KEY = "your-supabase-service-role-key"
 $env:SUPABASE_STORAGE_BUCKET = "kyc-documents"
 $env:SUPABASE_CERTIFICATE_BUCKET = "honey-certificates"
-$env:FRONTEND_URL = "https://honeychain-icix.onrender.com"
+$env:GROQ_API_KEY = "your-groq-api-key"
+$env:GROQ_MODEL = "openai/gpt-oss-120b"
+$env:FRONTEND_URLS = "http://localhost:8000, http://127.0.0.1:8000, https://honeychain-icix.onrender.com"
 $env:PORT = "8000"
 uvicorn app.main:app --reload --host 0.0.0.0 --port $env:PORT
 ```
@@ -246,9 +248,6 @@ Endpoints:
 	timeline for consumer verification.
 - `GET /api/public/batches/{batch_id}/certificate` fetches the already-issued
 	certificate without generating a new one.
-- `GET /requests` is a direct-entry admin operations desk. It is not linked from
-	website navigation and is intentionally accessible without authentication in
-	the prototype.
 - `GET /api/profile` returns the current beekeeper profile and cumulative counts.
 - `PATCH /api/profile` updates the current beekeeper's name, phone, and location.
 - `DELETE /api/profile` deletes the current beekeeper's relational data while
