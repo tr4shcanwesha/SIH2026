@@ -183,6 +183,56 @@ def list_hive_iot_data(beekeeper_id: str, limit: int = 8) -> list[dict[str, Any]
     return sorted(readings, key=lambda reading: reading["recorded_at"], reverse=True)
 
 
+def list_hive_alerts(beekeeper_id: str) -> list[dict[str, Any]]:
+    hives_response = supabase.table("hives").select("hive_id, location").eq("beekeeper_id", beekeeper_id).execute()
+    alerts: list[dict[str, Any]] = []
+    for hive in hives_response.data or []:
+        readings = (
+            supabase.table("hive_iot_data")
+            .select("recorded_at, temperature, humidity, co2, weight, sound")
+            .eq("hive_id", hive["hive_id"])
+            .order("recorded_at", desc=True)
+            .limit(2)
+            .execute()
+        ).data or []
+        if not readings:
+            continue
+        latest = readings[0]
+        previous = readings[1] if len(readings) > 1 else None
+        hive_context = {"hive_id": hive["hive_id"], "location": hive.get("location") or "Location unavailable"}
+
+        def add_alert(alert_type: str, severity: str, title: str, description: str, value: Any) -> None:
+            alerts.append(
+                {
+                    **hive_context,
+                    "type": alert_type,
+                    "severity": severity,
+                    "title": title,
+                    "description": description,
+                    "value": value,
+                    "recorded_at": latest["recorded_at"],
+                }
+            )
+
+        if latest.get("temperature") is not None and float(latest["temperature"]) > 36:
+            add_alert("temperature", "critical", "High temperature", f"Temperature reached {latest['temperature']}°C, exceeding the 36°C threshold.", latest["temperature"])
+        if previous and previous.get("weight") and latest.get("weight"):
+            previous_weight = float(previous["weight"])
+            weight_drop = (previous_weight - float(latest["weight"])) / previous_weight * 100
+            if weight_drop >= 18:
+                add_alert("weight", "critical", "Sudden weight drop", f"Hive weight dropped by {weight_drop:.1f}% since the previous reading.", latest["weight"])
+        if latest.get("humidity") is not None and float(latest["humidity"]) < 45:
+            add_alert("humidity", "warning", "Low humidity", f"Humidity has fallen to {latest['humidity']}%. Recommended minimum is 45%.", latest["humidity"])
+        if latest.get("co2") is not None and float(latest["co2"]) > 2500:
+            add_alert("co2", "warning", "Elevated CO₂", f"CO₂ concentration is {latest['co2']} ppm, above the 2500 ppm threshold.", latest["co2"])
+        if previous and previous.get("sound") and latest.get("sound"):
+            previous_sound = float(previous["sound"])
+            sound_change = (float(latest["sound"]) - previous_sound) / previous_sound * 100
+            if sound_change >= 32:
+                add_alert("sound", "warning", "Unusual hive sound", f"Sound activity is {sound_change:.1f}% higher than the previous reading.", latest["sound"])
+    return sorted(alerts, key=lambda alert: alert["recorded_at"], reverse=True)
+
+
 def add_hive(payload: dict[str, Any], beekeeper_id: str) -> dict[str, Any]:
     payload["hive_id"] = generate_unique_hive_id()
     payload["beekeeper_id"] = beekeeper_id

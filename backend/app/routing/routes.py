@@ -21,6 +21,7 @@ from app.services.batches import (
     create_batch,
     list_batches,
     list_hive_iot_data as list_hive_iot_data_records,
+    list_hive_alerts,
     list_hives as list_hive_records,
     remove_hive as remove_hive_record,
     update_batch_status_admin,
@@ -192,6 +193,11 @@ def list_hives(request: Request) -> list[dict[str, Any]]:
 @router.get("/api/hive-iot-data")
 def hive_iot_data(request: Request, limit: int = 8) -> list[dict[str, Any]]:
     return list_hive_iot_data_records(current_beekeeper_id(request), limit)
+
+
+@router.get("/api/alerts")
+def alerts(request: Request) -> list[dict[str, Any]]:
+    return list_hive_alerts(current_beekeeper_id(request))
 
 
 @router.post("/api/hives", status_code=201)
