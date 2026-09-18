@@ -163,6 +163,26 @@ def list_hives(beekeeper_id: str) -> list[dict[str, Any]]:
     return hives
 
 
+def list_hive_iot_data(beekeeper_id: str, limit: int = 8) -> list[dict[str, Any]]:
+    hives_response = supabase.table("hives").select("hive_id").eq("beekeeper_id", beekeeper_id).execute()
+    hive_ids = [hive["hive_id"] for hive in hives_response.data or []]
+    if not hive_ids:
+        return []
+    readings: list[dict[str, Any]] = []
+    per_hive_limit = max(1, min(limit, 100))
+    for hive_id in hive_ids:
+        response = (
+            supabase.table("hive_iot_data")
+            .select("hive_id, recorded_at, temperature, humidity, co2, weight, sound, bee_count")
+            .eq("hive_id", hive_id)
+            .order("recorded_at", desc=True)
+            .limit(per_hive_limit)
+            .execute()
+        )
+        readings.extend(response.data or [])
+    return sorted(readings, key=lambda reading: reading["recorded_at"], reverse=True)
+
+
 def add_hive(payload: dict[str, Any], beekeeper_id: str) -> dict[str, Any]:
     payload["hive_id"] = generate_unique_hive_id()
     payload["beekeeper_id"] = beekeeper_id
