@@ -80,152 +80,29 @@
     <img class="dashboard-db-image" src="/assets/dashboard/db.png" alt="" aria-hidden="true">
   </aside>
 
-  <main class="dash-main" id="dashboard-content">
-    <div class="dash-top">
-      <div>
-        <h2 id="dashboard-welcome">Welcome back</h2>
-        <p style="margin:0; color:var(--ink-soft); font-size:0.92rem;">7 registered hives · Araku Valley cluster · last synced <span data-sync-now>just now</span></p>
-      </div>
-      <div class="select-fake">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
-        Last 7 days
-      </div>
+  <main class="dash-main dashboard-overview" id="dashboard-content">
+    <div class="overview-header">
+      <div><h2 id="dashboard-welcome">Hive overview</h2><p id="dashboard-subtitle">Loading your apiary...</p></div>
+      <div class="overview-actions"><select id="overview-hive-select" aria-label="Select hive"><option value="all">All hives</option></select><button class="nav-cta" id="overview-refresh" type="button">Refresh data</button></div>
     </div>
-
-    <div class="kpi-row">
-      <div class="kpi-card">
-        <span>Active hives</span>
-        <b>7 / 7</b>
-        <span class="kpi-trend trend-up">All reporting</span>
+    <section class="overview-summary" aria-label="Hive summary">
+      <div class="overview-stat"><div>Total hives <span class="overview-pill ok">● monitored</span></div><b id="overview-total-hives">—</b><small>All registered hives</small></div>
+      <div class="overview-stat"><div>Hives needing attention <span class="overview-pill warn">review</span></div><b id="overview-attention">—</b><small>Based on latest readings</small></div>
+      <div class="overview-stat"><div>Average temperature</div><b id="overview-average-temperature">—</b><small>Across monitored hives</small></div>
+      <div class="overview-stat"><div>Total hive weight</div><b id="overview-total-weight">—</b><small>Latest recorded values</small></div>
+    </section>
+    <section class="overview-main">
+      <div class="overview-panel">
+        <div class="overview-panel-head"><div><h3 id="overview-trend-title">Apiary trends</h3><p>Latest sensor history from hive_iot_data</p></div><div class="overview-tabs" id="overview-tabs"><button class="active" data-overview-metric="temperature">Temperature</button><button data-overview-metric="humidity">Humidity</button><button data-overview-metric="co2">CO₂</button><button data-overview-metric="weight">Weight</button></div></div>
+        <div class="overview-chart-wrap"><svg id="overview-chart" viewBox="0 0 800 260" preserveAspectRatio="none" aria-label="Hive sensor trend chart"></svg></div>
+        <div class="overview-legend"><span><i></i><span id="overview-legend-text">Temperature</span></span><span id="overview-range-text">Recent readings</span></div>
       </div>
-      <div class="kpi-card">
-        <span>Colony health index</span>
-        <b>88%</b>
-        <span class="kpi-trend trend-up">▲ 3 pts vs last week</span>
-      </div>
-      <div class="kpi-card">
-        <span>Predicted yield, this season</span>
-        <b>142 kg</b>
-        <span class="kpi-trend trend-up">▲ on track vs plan</span>
-      </div>
-      <div class="kpi-card">
-        <span>Open AI alerts</span>
-        <b>2</b>
-        <span class="kpi-trend trend-warn">Hive 4 &amp; Hive 6</span>
-      </div>
-    </div>
-
-    <h3 style="font-size:1.2rem; margin-bottom:16px;">Hive status</h3>
-    <div class="hive-grid">
-      <div class="hive-card">
-        <div class="hive-top">
-          <div><h4>Hive 01</h4><span class="loc">North apiary row</span></div>
-          <span class="status-pill pill-good">Healthy</span>
-        </div>
-        <div class="sensor-row">
-          <div class="sensor"><span>Temperature</span><b>34.6°C</b></div>
-          <div class="sensor"><span>Humidity</span><b>58%</b></div>
-          <div class="sensor"><span>Weight</span><b>24.1 kg</b></div>
-          <div class="sensor"><span>Acoustic index</span><b>Normal</b></div>
-        </div>
-        <div class="ai-note">AI: brood pattern and foraging activity within normal range.</div>
-      </div>
-
-      <div class="hive-card">
-        <div class="hive-top">
-          <div><h4>Hive 02</h4><span class="loc">North apiary row</span></div>
-          <span class="status-pill pill-good">Healthy</span>
-        </div>
-        <div class="sensor-row">
-          <div class="sensor"><span>Temperature</span><b>35.0°C</b></div>
-          <div class="sensor"><span>Humidity</span><b>55%</b></div>
-          <div class="sensor"><span>Weight</span><b>26.7 kg</b></div>
-          <div class="sensor"><span>Acoustic index</span><b>Normal</b></div>
-        </div>
-        <div class="ai-note">AI: strong weight gain trend — on pace to lead this season's yield.</div>
-      </div>
-
-      <div class="hive-card status-warn">
-        <div class="hive-top">
-          <div><h4>Hive 04</h4><span class="loc">East slope</span></div>
-          <span class="status-pill pill-warn">Needs check</span>
-        </div>
-        <div class="sensor-row">
-          <div class="sensor"><span>Temperature</span><b>32.1°C</b></div>
-          <div class="sensor"><span>Humidity</span><b>71%</b></div>
-          <div class="sensor"><span>Weight</span><b>18.3 kg</b></div>
-          <div class="sensor"><span>Acoustic index</span><b>Elevated</b></div>
-        </div>
-        <div class="ai-note warn">AI: humidity and acoustic pattern match early signs of varroa mite stress. Inspection recommended within 48 hrs.</div>
-      </div>
-
-      <div class="hive-card">
-        <div class="hive-top">
-          <div><h4>Hive 05</h4><span class="loc">East slope</span></div>
-          <span class="status-pill pill-good">Healthy</span>
-        </div>
-        <div class="sensor-row">
-          <div class="sensor"><span>Temperature</span><b>34.8°C</b></div>
-          <div class="sensor"><span>Humidity</span><b>56%</b></div>
-          <div class="sensor"><span>Weight</span><b>22.9 kg</b></div>
-          <div class="sensor"><span>Acoustic index</span><b>Normal</b></div>
-        </div>
-        <div class="ai-note">AI: no anomalies detected in the past 7 days.</div>
-      </div>
-
-      <div class="hive-card status-warn">
-        <div class="hive-top">
-          <div><h4>Hive 06</h4><span class="loc">South orchard</span></div>
-          <span class="status-pill pill-warn">Needs check</span>
-        </div>
-        <div class="sensor-row">
-          <div class="sensor"><span>Temperature</span><b>36.4°C</b></div>
-          <div class="sensor"><span>Humidity</span><b>49%</b></div>
-          <div class="sensor"><span>Weight</span><b>15.6 kg</b></div>
-          <div class="sensor"><span>Acoustic index</span><b>Low</b></div>
-        </div>
-        <div class="ai-note warn">AI: weight loss and reduced foraging activity — possible forage shortage nearby.</div>
-      </div>
-
-      <div class="hive-card">
-        <div class="hive-top">
-          <div><h4>Hive 07</h4><span class="loc">South orchard</span></div>
-          <span class="status-pill pill-good">Healthy</span>
-        </div>
-        <div class="sensor-row">
-          <div class="sensor"><span>Temperature</span><b>34.2°C</b></div>
-          <div class="sensor"><span>Humidity</span><b>57%</b></div>
-          <div class="sensor"><span>Weight</span><b>23.4 kg</b></div>
-          <div class="sensor"><span>Acoustic index</span><b>Normal</b></div>
-        </div>
-        <div class="ai-note">AI: consistent build-up, ready for harvest assessment in ~10 days.</div>
-      </div>
-    </div>
-
-    <div class="panel-row">
-      <div class="panel">
-        <h4>Predicted honey yield by hive</h4>
-        <p class="sub">This season, kilograms — AI productivity model</p>
-        <div class="bar-chart">
-          <div class="bar" style="height:78%"><span>H1</span></div>
-          <div class="bar" style="height:92%"><span>H2</span></div>
-          <div class="bar" style="height:48%"><span>H4</span></div>
-          <div class="bar" style="height:70%"><span>H5</span></div>
-          <div class="bar" style="height:40%"><span>H6</span></div>
-          <div class="bar" style="height:74%"><span>H7</span></div>
-        </div>
-      </div>
-      <div class="panel">
-        <h4>Recent alerts</h4>
-        <p class="sub">Auto-generated from sensor &amp; imagery analysis</p>
-        <div class="alert-list">
-          <div class="alert-item"><span class="alert-dot dot-warn"></span><div>Hive 04 — possible varroa mite stress detected <br><span data-relative-minutes="120" style="color:var(--ink-soft); font-size:0.78rem;"></span></div></div>
-          <div class="alert-item"><span class="alert-dot dot-warn"></span><div>Hive 06 — weight drop suggests forage shortage <br><span data-relative-minutes="1440" style="color:var(--ink-soft); font-size:0.78rem;"></span></div></div>
-          <div class="alert-item"><span class="alert-dot dot-info"></span><div>Batch #HC-7734-IN lab results posted to ledger <br><span data-relative-minutes="2880" style="color:var(--ink-soft); font-size:0.78rem;"></span></div></div>
-          <div class="alert-item"><span class="alert-dot dot-good"></span><div>Hive 07 cleared for harvest window <br><span data-relative-minutes="4320" style="color:var(--ink-soft); font-size:0.78rem;"></span></div></div>
-        </div>
-      </div>
-    </div>
+      <div class="overview-panel"><div class="overview-panel-head"><div><h3>Your hives</h3><p>Select a hive to inspect its latest readings</p></div></div><div class="overview-hive-list" id="overview-hive-list"></div></div>
+    </section>
+    <section class="overview-bottom">
+      <div class="overview-panel"><div class="overview-panel-head"><div><h3>Hive comparison</h3><p>Latest readings across your apiary</p></div></div><div class="overview-table-wrap"><table class="overview-comparison"><thead><tr><th>Hive</th><th>Temp.</th><th>Humidity</th><th>Weight</th><th>Bee count</th></tr></thead><tbody id="overview-comparison-body"></tbody></table></div></div>
+      <div class="overview-panel"><div class="overview-panel-head"><div><h3>Recent changes</h3><p>Events worth checking</p></div></div><div class="overview-changes" id="overview-changes"></div></div>
+    </section>
   </main>
 </div>
 

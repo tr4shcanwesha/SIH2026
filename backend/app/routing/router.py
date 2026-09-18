@@ -91,7 +91,7 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
     view_file = FRONTEND_DIR / "dashboard" / filename
     dashboard_html = render_dashboard_shell()
     view_html = view_file.read_text(encoding="utf-8")
-    content_start = dashboard_html.index('<main class="dash-main" id="dashboard-content">')
+    content_start = dashboard_html.index('<main class="dash-main')
     content_end = dashboard_html.index("</main>", content_start)
     rendered_html = (
         dashboard_html[:content_start]

@@ -49,6 +49,132 @@ const loadDashboardProfile = async () => {
   if (welcome) welcome.textContent = `Welcome back ${payload.beekeeper.name}`;
 };
 
+const initializeOverview = () => {
+  const select = document.querySelector('#overview-hive-select');
+  const refreshButton = document.querySelector('#overview-refresh');
+  const hiveList = document.querySelector('#overview-hive-list');
+  const chart = document.querySelector('#overview-chart');
+  if (!select || !refreshButton || !hiveList || !chart) return;
+
+  let hives = [];
+  let readings = [];
+  let selectedHive = 'all';
+  let metric = 'temperature';
+  const labels = { temperature: 'Temperature', humidity: 'Humidity', co2: 'CO₂', weight: 'Weight' };
+  const units = { temperature: '°C', humidity: '%', co2: ' ppm', weight: ' kg' };
+
+  const latestReading = (hiveId) => hives.find((hive) => hive.hive_id === hiveId) || {};
+  const format = (value, unit = '') => value === null || value === undefined ? 'No data' : `${Number(value).toFixed(unit === ' ppm' ? 0 : 1)}${unit}`;
+  const isAttention = (hive) => Number(hive.temperature) > 36 || Number(hive.humidity) > 70 || Number(hive.co2) > 3000;
+
+  const renderSummary = () => {
+    const selected = selectedHive === 'all' ? hives : hives.filter((hive) => hive.hive_id === selectedHive);
+    const temperatures = selected.map((hive) => Number(hive.temperature)).filter(Number.isFinite);
+    const weights = selected.map((hive) => Number(hive.weight)).filter(Number.isFinite);
+    document.querySelector('#overview-total-hives').textContent = String(selected.length);
+    document.querySelector('#overview-attention').textContent = String(selected.filter(isAttention).length);
+    document.querySelector('#overview-average-temperature').textContent = temperatures.length
+      ? `${(temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length).toFixed(1)}°C`
+      : 'No data';
+    document.querySelector('#overview-total-weight').textContent = weights.length
+      ? `${weights.reduce((sum, value) => sum + value, 0).toFixed(1)} kg`
+      : 'No data';
+  };
+
+  const renderHives = () => {
+    hiveList.innerHTML = hives.length ? hives.map((hive) => `
+      <button class="overview-hive ${selectedHive === hive.hive_id ? 'selected' : ''}" type="button" data-overview-hive="${hive.hive_id}">
+        <div class="overview-hive-row"><div><strong>${hive.hive_id}</strong><span>${hive.location || 'Location unavailable'} · ${hive.bee_species || 'Species unavailable'}</span></div>
+        <em class="overview-pill ${isAttention(hive) ? 'warn' : 'ok'}">${isAttention(hive) ? 'Attention' : 'Normal'}</em></div>
+        <div class="overview-mini"><div><b>${format(hive.temperature, '°C')}</b><span>Temp.</span></div><div><b>${format(hive.humidity, '%')}</b><span>Humidity</span></div><div><b>${format(hive.weight, ' kg')}</b><span>Weight</span></div></div>
+      </button>`).join('') : '<p class="overview-empty">No hive data available.</p>';
+  };
+
+  const renderComparison = () => {
+    const body = document.querySelector('#overview-comparison-body');
+    body.innerHTML = hives.length ? hives.map((hive) => `
+      <tr><td><b>${hive.hive_id}</b><small>${hive.location || '—'}</small></td><td>${format(hive.temperature, '°C')}</td><td>${format(hive.humidity, '%')}</td><td>${format(hive.weight, ' kg')}</td><td>${hive.bee_count ?? 'No data'}</td></tr>`).join('') : '<tr><td colspan="5">No readings available.</td></tr>';
+  };
+
+  const renderChanges = () => {
+    const changes = hives.flatMap((hive) => {
+      const hiveReadings = readings.filter((reading) => reading.hive_id === hive.hive_id);
+      const previous = hiveReadings[1];
+      const latest = hiveReadings[0];
+      if (!latest) return [];
+      const events = [];
+      if (Number(latest.temperature) > 36) events.push(['!', `${hive.hive_id} temperature is high`, `${format(latest.temperature, '°C')} — review the hive environment.`]);
+      if (Number(latest.co2) > 3000) events.push(['!', `${hive.hive_id} CO₂ is elevated`, `${format(latest.co2, ' ppm')} — inspect ventilation if the trend continues.`]);
+      if (previous && Number(latest.weight) < Number(previous.weight)) events.push(['↓', `${hive.hive_id} weight decreased`, `Down ${Math.abs(Number(latest.weight) - Number(previous.weight)).toFixed(1)} kg since the previous reading.`]);
+      return events;
+    });
+    document.querySelector('#overview-changes').innerHTML = changes.length
+      ? changes.slice(0, 6).map(([icon, title, text]) => `<div class="overview-change"><span>${icon}</span><div><b>${title}</b><p>${text}</p></div><small>Latest</small></div>`).join('')
+      : '<p class="overview-empty">No recent changes require attention.</p>';
+  };
+
+  const renderChart = () => {
+    const ids = selectedHive === 'all' ? hives.map((hive) => hive.hive_id) : [selectedHive];
+    const seriesByHive = ids.map((id) => readings.filter((reading) => reading.hive_id === id).slice(0, 8).reverse());
+    const length = Math.max(...seriesByHive.map((series) => series.length), 0);
+    const series = Array.from({ length }, (_, index) => {
+      const values = seriesByHive.map((items) => Number(items[index]?.[metric])).filter(Number.isFinite);
+      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    }).filter((value) => value !== null);
+    if (!series.length) {
+      chart.innerHTML = '<text class="overview-chart-empty" x="400" y="130" text-anchor="middle">No historical readings available.</text>';
+      return;
+    }
+    const width = 800, height = 260, pad = { left: 50, right: 15, top: 15, bottom: 28 };
+    const min = Math.min(...series), max = Math.max(...series), range = max - min || 1;
+    const points = series.map((value, index) => [pad.left + index * ((width - pad.left - pad.right) / Math.max(series.length - 1, 1)), pad.top + ((max - value) / range) * (height - pad.top - pad.bottom)]);
+    const path = points.map(([x, y], index) => `${index ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+    const area = `${path} L ${points[points.length - 1][0]} ${height - pad.bottom} L ${points[0][0]} ${height - pad.bottom} Z`;
+    let markup = '';
+    for (let index = 0; index < 5; index += 1) {
+      const y = pad.top + index * ((height - pad.top - pad.bottom) / 4);
+      const value = max - (range * index / 4);
+      markup += `<line class="overview-axis" x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}"/><text class="overview-chart-label" x="4" y="${y + 4}">${value.toFixed(metric === 'co2' ? 0 : 1)}${units[metric]}</text>`;
+    }
+    markup += `<path class="overview-area" d="${area}"/><path class="overview-line" d="${path}"/><circle class="overview-dot" cx="${points[points.length - 1][0]}" cy="${points[points.length - 1][1]}" r="5"/>`;
+    chart.innerHTML = markup;
+    document.querySelector('#overview-legend-text').textContent = labels[metric];
+    document.querySelector('#overview-range-text').textContent = `${series.length} recent readings`;
+    document.querySelector('#overview-trend-title').textContent = `${selectedHive === 'all' ? 'Apiary' : selectedHive} trends`;
+  };
+
+  const render = () => { renderSummary(); renderHives(); renderComparison(); renderChanges(); renderChart(); };
+  const load = async () => {
+    const [hivesResponse, readingsResponse] = await Promise.all([fetch('/api/hives'), fetch('/api/hive-iot-data?limit=8')]);
+    if (!hivesResponse.ok || !readingsResponse.ok) throw new Error('Unable to load dashboard data.');
+    hives = await hivesResponse.json();
+    readings = await readingsResponse.json();
+    select.innerHTML = `<option value="all">All hives</option>${hives.map((hive) => `<option value="${hive.hive_id}">${hive.hive_id} · ${hive.location || 'Hive'}</option>`).join('')}`;
+    select.value = selectedHive;
+    document.querySelector('#dashboard-subtitle').textContent = `${hives.length} registered hive${hives.length === 1 ? '' : 's'} · Last synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    render();
+  };
+  select.addEventListener('change', (event) => { selectedHive = event.target.value; render(); });
+  document.querySelector('#overview-tabs').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-overview-metric]');
+    if (!button) return;
+    metric = button.dataset.overviewMetric;
+    document.querySelectorAll('[data-overview-metric]').forEach((item) => item.classList.toggle('active', item === button));
+    renderChart();
+  });
+  hiveList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-overview-hive]');
+    if (!button) return;
+    selectedHive = button.dataset.overviewHive;
+    select.value = selectedHive;
+    render();
+  });
+  refreshButton.addEventListener('click', () => load().catch((error) => { console.error(error); }));
+  load().catch((error) => { document.querySelector('#dashboard-subtitle').textContent = error.message; });
+  window.clearInterval(window.overviewRefreshTimer);
+  window.overviewRefreshTimer = window.setInterval(() => load().catch(() => {}), 10000);
+};
+
 const renderDynamicTimes = () => {
   document.querySelectorAll('[data-sync-now]').forEach((element) => {
     element.textContent = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(new Date());
@@ -626,6 +752,7 @@ const loadDashboardView = async (viewName, updateHistory = false) => {
     dashboardContent.innerHTML = newContent.innerHTML;
     renderDynamicTimes();
     loadDashboardProfile().catch(() => {});
+    initializeOverview();
     initializeHivePage();
     initializeHarvestPage();
     initializeAssistant();
@@ -658,6 +785,7 @@ window.addEventListener('popstate', () => {
 });
 
 initializeAssistant();
+initializeOverview();
 
 const initializeHivePage = () => {
   const hiveList = document.querySelector('#hive-list');
