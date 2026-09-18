@@ -128,9 +128,7 @@ const initializeAssistant = () => {
   const alertPrompt = window.sessionStorage.getItem('honeychain-alert-prompt');
   if (alertPrompt) {
     window.sessionStorage.removeItem('honeychain-alert-prompt');
-    input.value = alertPrompt;
-    input.dispatchEvent(new Event('input'));
-    input.focus();
+    submit(alertPrompt);
   }
   input.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {

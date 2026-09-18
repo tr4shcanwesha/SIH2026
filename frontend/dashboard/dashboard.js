@@ -56,8 +56,25 @@ const initializeAlerts = async () => {
   const badge = document.querySelector('#notification-badge');
   if (!alertsList && !notificationItems) return;
 
+  if (alertsList) {
+    alertsList.innerHTML = `
+      <div class="hive-loading" role="status" aria-live="polite">
+        <span class="hive-spinner" aria-hidden="true"></span>
+        <span>Loading alerts...</span>
+      </div>`;
+  }
+
   try {
-    const response = await fetch('/api/alerts');
+    let response;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        response = await fetch('/api/alerts');
+        if (response.ok || response.status < 500 || attempt === 1) break;
+      } catch (error) {
+        if (attempt === 1) throw error;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
     if (!response.ok) throw new Error('Unable to load alerts.');
     const alerts = await response.json();
     const critical = alerts.filter((alert) => alert.severity === 'critical').length;
@@ -115,7 +132,7 @@ const initializeAlerts = async () => {
       : '<p class="hive-empty">No hives require attention.</p>';
   } catch (error) {
     console.error('Failed to load alerts:', error);
-    if (alertsList) alertsList.innerHTML = '<p class="hive-empty">Alerts could not be loaded.</p>';
+    if (alertsList) alertsList.innerHTML = '<p class="hive-empty hive-load-error">Alerts could not be loaded. Please try again.</p>';
     if (notificationItems) notificationItems.innerHTML = '<span class="notification-empty">Alerts could not be loaded.</span>';
   }
 };
