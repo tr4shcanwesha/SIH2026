@@ -115,11 +115,6 @@ def verify_batch_page(batch_id: str) -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "verify.html")
 
 
-@router.get("/requests", include_in_schema=False, response_model=None)
-def requests_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "requests" / "requests.html")
-
-
 @router.get("/assets/landing/style.css", include_in_schema=False)
 def landing_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "landing" / "style.css")
@@ -160,9 +155,19 @@ def dashboard_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "dashboard" / "style.css")
 
 
+@router.get("/assets/dashboard/assistant.css", include_in_schema=False)
+def assistant_styles() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dashboard" / "assistant.css")
+
+
 @router.get("/assets/dashboard/dashboard.js", include_in_schema=False)
 def dashboard_script() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "dashboard" / "dashboard.js")
+
+
+@router.get("/assets/dashboard/assistant.js", include_in_schema=False)
+def assistant_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dashboard" / "assistant.js")
 
 
 @router.get("/assets/dashboard/batch.css", include_in_schema=False)
@@ -216,13 +221,3 @@ def serve_frontend_image(filename: str) -> FileResponse:
 @router.get("/assets/verify/style.css", include_in_schema=False)
 def verify_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "style.css")
-
-
-@router.get("/assets/requests/style.css", include_in_schema=False)
-def requests_styles() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "requests" / "style.css")
-
-
-@router.get("/assets/requests/requests.js", include_in_schema=False)
-def requests_script() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "requests" / "requests.js")

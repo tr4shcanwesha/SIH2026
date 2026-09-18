@@ -20,13 +20,9 @@ LOCAL_FRONTEND_URLS = [
 def get_frontend_origins() -> list[str]:
     env_list = os.getenv("FRONTEND_URLS")
     if env_list:
-        return [origin.strip() for origin in env_list.split(",") if origin.strip()]
+        return [origin.strip().rstrip("/") for origin in env_list.split(",") if origin.strip()]
 
-    configured = os.getenv("FRONTEND_URL")
     origins: list[str] = []
-    if configured:
-        origins.append(configured.strip())
-
     for url in [DEFAULT_FRONTEND_URL, *LOCAL_FRONTEND_URLS]:
         if url not in origins:
             origins.append(url)
