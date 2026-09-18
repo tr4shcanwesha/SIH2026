@@ -11,6 +11,12 @@ const isProvisionalBatch = (batch) => !batch.honey_type
 const escapeHtml = (value) => String(value ?? '-').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
 const formatDate = (value) => value ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }).format(new Date(value)) : '-';
 const formatDateTime = (value) => value ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true, timeZone: 'Asia/Kolkata' }).format(new Date(value)) : '-';
+const batchLoading = document.querySelector('#batch-loading');
+const batchError = document.querySelector('#error-message');
+
+const setBatchLoading = (isLoading) => {
+  if (batchLoading) batchLoading.hidden = !isLoading;
+};
 
 const renderJourney = (status) => {
   const stages = [
@@ -54,6 +60,7 @@ const renderBatch = (batch) => {
 };
 
 const loadBatch = async () => {
+  setBatchLoading(true);
   const [batchResponse, profileResponse, hivesResponse] = await Promise.all([
     fetch('/api/honey-batches'),
     fetch('/api/profile'),
@@ -69,6 +76,7 @@ const loadBatch = async () => {
     batch.hive = hives.find((hive) => hive.hive_id === batch.hive_id) || {};
   }
   renderBatch(batch);
+  setBatchLoading(false);
   document.querySelector('#sync-label').textContent = `Loaded ${new Date().toLocaleTimeString([], { timeStyle: 'short' })}`;
 };
 
@@ -80,4 +88,8 @@ const openCertificate = () => {
 document.querySelector('#certificate-button').addEventListener('click', () => {
   openCertificate();
 });
-loadBatch().catch((error) => { const node = document.querySelector('#error-message'); node.textContent = error.message; node.hidden = false; });
+loadBatch().catch((error) => {
+  setBatchLoading(false);
+  batchError.textContent = error.message;
+  batchError.hidden = false;
+});

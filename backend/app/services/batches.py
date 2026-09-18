@@ -130,7 +130,107 @@ def issue_certificate(batch: dict[str, Any], hive: dict[str, Any]) -> dict[str, 
 
 def list_hives(beekeeper_id: str) -> list[dict[str, Any]]:
     response = supabase.table("hives").select("*").eq("beekeeper_id", beekeeper_id).order("hive_id").execute()
-    return response.data or []
+    hives = response.data or []
+    if not hives:
+        return []
+
+    hive_ids = [hive["hive_id"] for hive in hives]
+    iot_response = (
+        supabase.table("hive_iot_data")
+        .select("hive_id, recorded_at, temperature, humidity, co2, weight, sound, bee_count")
+        .in_("hive_id", hive_ids)
+        .order("recorded_at", desc=True)
+        .execute()
+    )
+    latest_iot_by_hive: dict[str, dict[str, Any]] = {}
+    for reading in iot_response.data or []:
+        latest_iot_by_hive.setdefault(reading["hive_id"], reading)
+
+    for hive in hives:
+        latest_iot = latest_iot_by_hive.get(hive["hive_id"])
+        if latest_iot:
+            hive.update(
+                {
+                    "recorded_at": latest_iot["recorded_at"],
+                    "temperature": latest_iot["temperature"],
+                    "humidity": latest_iot["humidity"],
+                    "co2": latest_iot["co2"],
+                    "weight": latest_iot["weight"],
+                    "sound": latest_iot["sound"],
+                    "bee_count": latest_iot["bee_count"],
+                }
+            )
+    return hives
+
+
+def list_hive_iot_data(beekeeper_id: str, limit: int = 8) -> list[dict[str, Any]]:
+    hives_response = supabase.table("hives").select("hive_id").eq("beekeeper_id", beekeeper_id).execute()
+    hive_ids = [hive["hive_id"] for hive in hives_response.data or []]
+    if not hive_ids:
+        return []
+    readings: list[dict[str, Any]] = []
+    per_hive_limit = max(1, min(limit, 100))
+    for hive_id in hive_ids:
+        response = (
+            supabase.table("hive_iot_data")
+            .select("hive_id, recorded_at, temperature, humidity, co2, weight, sound, bee_count")
+            .eq("hive_id", hive_id)
+            .order("recorded_at", desc=True)
+            .limit(per_hive_limit)
+            .execute()
+        )
+        readings.extend(response.data or [])
+    return sorted(readings, key=lambda reading: reading["recorded_at"], reverse=True)
+
+
+def list_hive_alerts(beekeeper_id: str) -> list[dict[str, Any]]:
+    hives_response = supabase.table("hives").select("hive_id, location").eq("beekeeper_id", beekeeper_id).execute()
+    alerts: list[dict[str, Any]] = []
+    for hive in hives_response.data or []:
+        readings = (
+            supabase.table("hive_iot_data")
+            .select("recorded_at, temperature, humidity, co2, weight, sound")
+            .eq("hive_id", hive["hive_id"])
+            .order("recorded_at", desc=True)
+            .limit(2)
+            .execute()
+        ).data or []
+        if not readings:
+            continue
+        latest = readings[0]
+        previous = readings[1] if len(readings) > 1 else None
+        hive_context = {"hive_id": hive["hive_id"], "location": hive.get("location") or "Location unavailable"}
+
+        def add_alert(alert_type: str, severity: str, title: str, description: str, value: Any) -> None:
+            alerts.append(
+                {
+                    **hive_context,
+                    "type": alert_type,
+                    "severity": severity,
+                    "title": title,
+                    "description": description,
+                    "value": value,
+                    "recorded_at": latest["recorded_at"],
+                }
+            )
+
+        if latest.get("temperature") is not None and float(latest["temperature"]) > 36:
+            add_alert("temperature", "critical", "High temperature", f"Temperature reached {latest['temperature']}°C, exceeding the 36°C threshold.", latest["temperature"])
+        if previous and previous.get("weight") and latest.get("weight"):
+            previous_weight = float(previous["weight"])
+            weight_drop = (previous_weight - float(latest["weight"])) / previous_weight * 100
+            if weight_drop >= 18:
+                add_alert("weight", "critical", "Sudden weight drop", f"Hive weight dropped by {weight_drop:.1f}% since the previous reading.", latest["weight"])
+        if latest.get("humidity") is not None and float(latest["humidity"]) < 45:
+            add_alert("humidity", "warning", "Low humidity", f"Humidity has fallen to {latest['humidity']}%. Recommended minimum is 45%.", latest["humidity"])
+        if latest.get("co2") is not None and float(latest["co2"]) > 2500:
+            add_alert("co2", "warning", "Elevated CO₂", f"CO₂ concentration is {latest['co2']} ppm, above the 2500 ppm threshold.", latest["co2"])
+        if previous and previous.get("sound") and latest.get("sound"):
+            previous_sound = float(previous["sound"])
+            sound_change = (float(latest["sound"]) - previous_sound) / previous_sound * 100
+            if sound_change >= 32:
+                add_alert("sound", "warning", "Unusual hive sound", f"Sound activity is {sound_change:.1f}% higher than the previous reading.", latest["sound"])
+    return sorted(alerts, key=lambda alert: alert["recorded_at"], reverse=True)
 
 
 def add_hive(payload: dict[str, Any], beekeeper_id: str) -> dict[str, Any]:
@@ -139,7 +239,23 @@ def add_hive(payload: dict[str, Any], beekeeper_id: str) -> dict[str, Any]:
     response = supabase.table("hives").insert(payload).execute()
     if not response.data:
         raise HTTPException(status_code=400, detail="Hive could not be added")
+    iot_response = supabase.table("hive_iot_data").insert(generate_initial_iot_reading(payload["hive_id"])).execute()
+    if not iot_response.data:
+        raise HTTPException(status_code=502, detail="Hive was created, but its initial IoT data could not be saved")
     return response.data[0]
+
+
+def generate_initial_iot_reading(hive_id: str) -> dict[str, Any]:
+    generator = secrets.SystemRandom()
+    return {
+        "hive_id": hive_id,
+        "temperature": round(generator.uniform(30, 38), 2),
+        "humidity": round(generator.uniform(45, 75), 2),
+        "co2": round(generator.uniform(300, 1500), 2),
+        "weight": round(generator.uniform(10, 35), 2),
+        "sound": round(generator.uniform(20, 80), 2),
+        "bee_count": generator.randint(10000, 50000),
+    }
 
 
 def generate_unique_hive_id() -> str:
@@ -263,7 +379,18 @@ def update_batch_status_admin(batch_id: str, status: str) -> dict[str, Any]:
     return updated_batch
 
 
-def remove_hive(hive_id: str, beekeeper_id: str) -> None:
-    response = supabase.table("hives").delete().eq("hive_id", hive_id).eq("beekeeper_id", beekeeper_id).execute()
+def update_hive_status(hive_id: str, beekeeper_id: str, status: str) -> dict[str, Any]:
+    normalized_status = status.strip().title()
+    if normalized_status not in {"Healthy", "Inactive"}:
+        raise HTTPException(status_code=400, detail="Hive status must be Healthy or Inactive")
+
+    response = (
+        supabase.table("hives")
+        .update({"status": normalized_status})
+        .eq("hive_id", hive_id)
+        .eq("beekeeper_id", beekeeper_id)
+        .execute()
+    )
     if not response.data:
         raise HTTPException(status_code=404, detail="Hive not found")
+    return response.data[0]

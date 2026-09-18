@@ -2,6 +2,7 @@ const profileButton = document.querySelector('.profile-button');
 const profileMenu = document.querySelector('#profile-menu');
 const notificationToggle = document.querySelector('#notification-toggle');
 const notificationMenu = document.querySelector('#notification-menu');
+
 let harvestBatches = [];
 let harvestHives = new Map();
 let harvestCarouselOffset = 0;
@@ -49,6 +50,219 @@ const loadDashboardProfile = async () => {
   if (welcome) welcome.textContent = `Welcome back ${payload.beekeeper.name}`;
 };
 
+const initializeAlerts = async () => {
+  const alertsList = document.querySelector('#alerts-list');
+  const notificationItems = document.querySelector('#notification-items');
+  const badge = document.querySelector('#notification-badge');
+  if (!alertsList && !notificationItems) return;
+
+  if (alertsList) {
+    alertsList.innerHTML = `
+      <div class="hive-loading" role="status" aria-live="polite">
+        <span class="hive-spinner" aria-hidden="true"></span>
+        <span>Loading alerts...</span>
+      </div>`;
+  }
+
+  try {
+    let response;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        response = await fetch('/api/alerts');
+        if (response.ok || response.status < 500 || attempt === 1) break;
+      } catch (error) {
+        if (attempt === 1) throw error;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
+    if (!response.ok) throw new Error('Unable to load alerts.');
+    const alerts = await response.json();
+    const critical = alerts.filter((alert) => alert.severity === 'critical').length;
+    const warnings = alerts.filter((alert) => alert.severity === 'warning').length;
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
+    }[character]));
+    const relativeTime = (value) => {
+      const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60000));
+      return minutes < 1 ? 'Just now' : minutes < 60 ? `${minutes} minutes ago` : `${Math.floor(minutes / 60)} hours ago`;
+    };
+    const shortMetric = { temperature: 'temp', humidity: 'humidity', weight: 'weight', co2: 'CO₂', sound: 'sound' };
+    const alertMarkup = (alert) => `
+      <article class="alert-rule-card" data-alert-severity="${escapeHtml(alert.severity)}">
+        <div class="alert-rule-top"><div class="alert-rule-title"><span class="alert-rule-icon ${alert.severity === 'critical' ? 'critical' : 'warning'}">${alert.type === 'temperature' ? '°' : alert.type === 'weight' ? '⚖' : alert.type === 'humidity' ? '◌' : alert.type === 'co2' ? '◉' : '≈'}</span><div><h3>${escapeHtml(alert.title)}</h3><p>${escapeHtml(alert.hive_id)} · ${escapeHtml(alert.location)}</p></div></div><span class="alert-rule-severity ${alert.severity}">${escapeHtml(alert.severity)}</span></div>
+        <p class="alert-rule-description">${escapeHtml(alert.description)}</p>
+        <div class="alert-rule-meta"><span>${relativeTime(alert.recorded_at)}</span><button type="button" class="alert-resolve-button" data-resolve-alert="${escapeHtml(alert.hive_id)}" data-alert-prompt="${escapeHtml(`How to resolve "${alert.title}" on ${alert.hive_id}? ${alert.description}`)}">Resolve</button></div>
+      </article>`;
+
+    if (badge) badge.textContent = String(alerts.length);
+    if (notificationItems) {
+      notificationItems.innerHTML = alerts.length
+        ? alerts.slice(0, 5).map((alert) => `<div class="notification-alert"><strong>Check ${escapeHtml(alert.hive_id)}: abnormal ${shortMetric[alert.type] || 'reading'}</strong><button type="button" data-resolve-alert="${escapeHtml(alert.hive_id)}" data-alert-prompt="${escapeHtml(`How to resolve "${alert.title}" on ${alert.hive_id}? ${alert.description}`)}">Resolve</button></div>`).join('')
+        : '<span class="notification-empty">No active alerts.</span>';
+    }
+    if (!alertsList) return;
+
+    document.querySelector('#alerts-critical-count').textContent = String(critical);
+    document.querySelector('#alerts-warning-count').textContent = String(warnings);
+    document.querySelector('#alerts-resolved-count').textContent = '0';
+    document.querySelector('#alerts-unresolved-count').textContent = String(alerts.length);
+    document.querySelector('#alerts-count').textContent = `${alerts.length} alert${alerts.length === 1 ? '' : 's'}`;
+    const renderAlerts = (filter = 'all') => {
+      const filtered = filter === 'all' ? alerts : alerts.filter((alert) => alert.severity === filter);
+      alertsList.innerHTML = filtered.length ? filtered.map(alertMarkup).join('') : '<p class="hive-empty">No alerts in this category.</p>';
+      document.querySelector('#alerts-count').textContent = `${filtered.length} alert${filtered.length === 1 ? '' : 's'}`;
+    };
+    document.querySelector('#alerts-filters').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-alert-filter]');
+      if (!button) return;
+      document.querySelectorAll('[data-alert-filter]').forEach((item) => item.classList.toggle('active', item === button));
+      renderAlerts(button.dataset.alertFilter);
+    });
+    renderAlerts();
+    const breakdown = ['temperature', 'humidity', 'weight', 'co2', 'sound'].map((type) => ({
+      type,
+      count: alerts.filter((alert) => alert.type === type).length,
+    }));
+    const maxCount = Math.max(...breakdown.map((item) => item.count), 1);
+    document.querySelector('#alerts-breakdown').innerHTML = breakdown.map((item) => `<div class="alert-breakdown-item"><div><span>${item.type === 'co2' ? 'CO₂' : item.type[0].toUpperCase() + item.type.slice(1)}</span><span>${item.count}</span></div><div class="alert-progress"><span style="width:${item.count / maxCount * 100}%"></span></div></div>`).join('');
+    const byHive = new Map();
+    alerts.forEach((alert) => byHive.set(alert.hive_id, (byHive.get(alert.hive_id) || 0) + 1));
+    document.querySelector('#alerts-problem-hives').innerHTML = byHive.size
+      ? [...byHive.entries()].sort((a, b) => b[1] - a[1]).map(([hiveId, count]) => `<div class="alert-problem-hive"><div><b>${escapeHtml(hiveId)}</b><span>Active sensor alerts</span></div><strong>${count} alert${count === 1 ? '' : 's'}</strong></div>`).join('')
+      : '<p class="hive-empty">No hives require attention.</p>';
+  } catch (error) {
+    console.error('Failed to load alerts:', error);
+    if (alertsList) alertsList.innerHTML = '<p class="hive-empty hive-load-error">Alerts could not be loaded. Please try again.</p>';
+    if (notificationItems) notificationItems.innerHTML = '<span class="notification-empty">Alerts could not be loaded.</span>';
+  }
+};
+
+const initializeOverview = () => {
+  const select = document.querySelector('#overview-hive-select');
+  const refreshButton = document.querySelector('#overview-refresh');
+  const hiveList = document.querySelector('#overview-hive-list');
+  const chart = document.querySelector('#overview-chart');
+  if (!select || !refreshButton || !hiveList || !chart) return;
+
+  let hives = [];
+  let readings = [];
+  let selectedHive = 'all';
+  let metric = 'temperature';
+  const labels = { temperature: 'Temperature', humidity: 'Humidity', co2: 'CO₂', weight: 'Weight' };
+  const units = { temperature: '°C', humidity: '%', co2: ' ppm', weight: ' kg' };
+
+  const latestReading = (hiveId) => hives.find((hive) => hive.hive_id === hiveId) || {};
+  const format = (value, unit = '') => value === null || value === undefined ? 'No data' : `${Number(value).toFixed(unit === ' ppm' ? 0 : 1)}${unit}`;
+  const isAttention = (hive) => Number(hive.temperature) > 36 || Number(hive.humidity) > 70 || Number(hive.co2) > 3000;
+
+  const renderSummary = () => {
+    const selected = selectedHive === 'all' ? hives : hives.filter((hive) => hive.hive_id === selectedHive);
+    const temperatures = selected.map((hive) => Number(hive.temperature)).filter(Number.isFinite);
+    const weights = selected.map((hive) => Number(hive.weight)).filter(Number.isFinite);
+    document.querySelector('#overview-total-hives').textContent = String(selected.length);
+    document.querySelector('#overview-attention').textContent = String(selected.filter(isAttention).length);
+    document.querySelector('#overview-average-temperature').textContent = temperatures.length
+      ? `${(temperatures.reduce((sum, value) => sum + value, 0) / temperatures.length).toFixed(1)}°C`
+      : 'No data';
+    document.querySelector('#overview-total-weight').textContent = weights.length
+      ? `${weights.reduce((sum, value) => sum + value, 0).toFixed(1)} kg`
+      : 'No data';
+  };
+
+  const renderHives = () => {
+    hiveList.innerHTML = hives.length ? hives.map((hive) => `
+      <button class="overview-hive ${selectedHive === hive.hive_id ? 'selected' : ''}" type="button" data-overview-hive="${hive.hive_id}">
+        <div class="overview-hive-row"><div><strong>${hive.hive_id}</strong><span>${hive.location || 'Location unavailable'} · ${hive.bee_species || 'Species unavailable'}</span></div>
+        <em class="overview-pill ${isAttention(hive) ? 'warn' : 'ok'}">${isAttention(hive) ? 'Attention' : 'Normal'}</em></div>
+        <div class="overview-mini"><div><b>${format(hive.temperature, '°C')}</b><span>Temp.</span></div><div><b>${format(hive.humidity, '%')}</b><span>Humidity</span></div><div><b>${format(hive.weight, ' kg')}</b><span>Weight</span></div></div>
+      </button>`).join('') : '<p class="overview-empty">No hive data available.</p>';
+  };
+
+  const renderComparison = () => {
+    const body = document.querySelector('#overview-comparison-body');
+    body.innerHTML = hives.length ? hives.map((hive) => `
+      <tr><td><b>${hive.hive_id}</b><small>${hive.location || '—'}</small></td><td>${format(hive.temperature, '°C')}</td><td>${format(hive.humidity, '%')}</td><td>${format(hive.weight, ' kg')}</td><td>${hive.bee_count ?? 'No data'}</td></tr>`).join('') : '<tr><td colspan="5">No readings available.</td></tr>';
+  };
+
+  const renderChanges = () => {
+    const changes = hives.flatMap((hive) => {
+      const hiveReadings = readings.filter((reading) => reading.hive_id === hive.hive_id);
+      const previous = hiveReadings[1];
+      const latest = hiveReadings[0];
+      if (!latest) return [];
+      const events = [];
+      if (Number(latest.temperature) > 36) events.push(['!', `${hive.hive_id} temperature is high`, `${format(latest.temperature, '°C')} — review the hive environment.`]);
+      if (Number(latest.co2) > 3000) events.push(['!', `${hive.hive_id} CO₂ is elevated`, `${format(latest.co2, ' ppm')} — inspect ventilation if the trend continues.`]);
+      if (previous && Number(latest.weight) < Number(previous.weight)) events.push(['↓', `${hive.hive_id} weight decreased`, `Down ${Math.abs(Number(latest.weight) - Number(previous.weight)).toFixed(1)} kg since the previous reading.`]);
+      return events;
+    });
+    document.querySelector('#overview-changes').innerHTML = changes.length
+      ? changes.slice(0, 6).map(([icon, title, text]) => `<div class="overview-change"><span>${icon}</span><div><b>${title}</b><p>${text}</p></div><small>Latest</small></div>`).join('')
+      : '<p class="overview-empty">No recent changes require attention.</p>';
+  };
+
+  const renderChart = () => {
+    const ids = selectedHive === 'all' ? hives.map((hive) => hive.hive_id) : [selectedHive];
+    const seriesByHive = ids.map((id) => readings.filter((reading) => reading.hive_id === id).slice(0, 8).reverse());
+    const length = Math.max(...seriesByHive.map((series) => series.length), 0);
+    const series = Array.from({ length }, (_, index) => {
+      const values = seriesByHive.map((items) => Number(items[index]?.[metric])).filter(Number.isFinite);
+      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    }).filter((value) => value !== null);
+    if (!series.length) {
+      chart.innerHTML = '<text class="overview-chart-empty" x="400" y="130" text-anchor="middle">No historical readings available.</text>';
+      return;
+    }
+    const width = 800, height = 260, pad = { left: 50, right: 15, top: 15, bottom: 28 };
+    const min = Math.min(...series), max = Math.max(...series), range = max - min || 1;
+    const points = series.map((value, index) => [pad.left + index * ((width - pad.left - pad.right) / Math.max(series.length - 1, 1)), pad.top + ((max - value) / range) * (height - pad.top - pad.bottom)]);
+    const path = points.map(([x, y], index) => `${index ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+    const area = `${path} L ${points[points.length - 1][0]} ${height - pad.bottom} L ${points[0][0]} ${height - pad.bottom} Z`;
+    let markup = '';
+    for (let index = 0; index < 5; index += 1) {
+      const y = pad.top + index * ((height - pad.top - pad.bottom) / 4);
+      const value = max - (range * index / 4);
+      markup += `<line class="overview-axis" x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}"/><text class="overview-chart-label" x="4" y="${y + 4}">${value.toFixed(metric === 'co2' ? 0 : 1)}${units[metric]}</text>`;
+    }
+    markup += `<path class="overview-area" d="${area}"/><path class="overview-line" d="${path}"/><circle class="overview-dot" cx="${points[points.length - 1][0]}" cy="${points[points.length - 1][1]}" r="5"/>`;
+    chart.innerHTML = markup;
+    document.querySelector('#overview-legend-text').textContent = labels[metric];
+    document.querySelector('#overview-range-text').textContent = `${series.length} recent readings`;
+    document.querySelector('#overview-trend-title').textContent = `${selectedHive === 'all' ? 'Apiary' : selectedHive} trends`;
+  };
+
+  const render = () => { renderSummary(); renderHives(); renderComparison(); renderChanges(); renderChart(); };
+  const load = async () => {
+    const [hivesResponse, readingsResponse] = await Promise.all([fetch('/api/hives'), fetch('/api/hive-iot-data?limit=8')]);
+    if (!hivesResponse.ok || !readingsResponse.ok) throw new Error('Unable to load dashboard data.');
+    hives = await hivesResponse.json();
+    readings = await readingsResponse.json();
+    select.innerHTML = `<option value="all">All hives</option>${hives.map((hive) => `<option value="${hive.hive_id}">${hive.hive_id} · ${hive.location || 'Hive'}</option>`).join('')}`;
+    select.value = selectedHive;
+    document.querySelector('#dashboard-subtitle').textContent = `${hives.length} registered hive${hives.length === 1 ? '' : 's'} · Last synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    render();
+  };
+  select.addEventListener('change', (event) => { selectedHive = event.target.value; render(); });
+  document.querySelector('#overview-tabs').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-overview-metric]');
+    if (!button) return;
+    metric = button.dataset.overviewMetric;
+    document.querySelectorAll('[data-overview-metric]').forEach((item) => item.classList.toggle('active', item === button));
+    renderChart();
+  });
+  hiveList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-overview-hive]');
+    if (!button) return;
+    selectedHive = button.dataset.overviewHive;
+    select.value = selectedHive;
+    render();
+  });
+  refreshButton.addEventListener('click', () => load().catch((error) => { console.error(error); }));
+  load().catch((error) => { document.querySelector('#dashboard-subtitle').textContent = error.message; });
+  window.clearInterval(window.overviewRefreshTimer);
+  window.overviewRefreshTimer = window.setInterval(() => load().catch(() => {}), 10000);
+};
+
 const renderDynamicTimes = () => {
   document.querySelectorAll('[data-sync-now]').forEach((element) => {
     element.textContent = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format(new Date());
@@ -67,6 +281,14 @@ renderDynamicTimes();
 loadDashboardProfile().catch(() => {});
 
 const loadHarvestBatches = async () => {
+  const harvestList = document.querySelector('#harvest-list');
+  if (harvestList) {
+    harvestList.innerHTML = `
+      <div class="hive-loading" role="status" aria-live="polite">
+        <span class="hive-spinner" aria-hidden="true"></span>
+        <span>Loading your harvests...</span>
+      </div>`;
+  }
   const [batchResponse, hiveResponse] = await Promise.all([
     fetch('/api/honey-batches'),
     fetch('/api/hives'),
@@ -217,7 +439,7 @@ const renderHarvestBatches = () => {
       <article class="harvest-reference-row harvest-card">
         <div class="harvest-reference-id">
           <div class="harvest-reference-hex"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
-          <div><strong>${batch.hive_id}</strong><small>Batch ${batch.batch_id} · created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
+          <div><strong>Batch: ${batch.batch_id}</strong><small>Hive: ${batch.hive_id} · created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
         </div>
         <div class="batch-verification">
           <div class="batch-qr" data-qr-url="${verificationUrl}" aria-label="Verification QR code"></div>
@@ -251,7 +473,7 @@ const renderHarvestBatches = () => {
         <div class="harvest-card-icon"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
         <div class="harvest-card-body">
           ${batchStatusMarkup(batchStatus)}
-          <h3>${batch.hive_id}</h3>
+          <h3>${batch.batch_id}</h3>
           <small>Location <b>${hive.location || 'Not available'}</b></small>
           <small>Species <b>${hive.bee_species || 'Not available'}</b></small>
           <small>Hive type <b>${hive.hive_type || 'Not available'}</b></small>
@@ -542,6 +764,15 @@ if (notificationToggle && notificationMenu) {
   });
 }
 
+document.addEventListener('click', (event) => {
+  const resolveButton = event.target.closest('[data-resolve-alert]');
+  if (!resolveButton) return;
+  event.preventDefault();
+  window.sessionStorage.setItem('honeychain-alert-prompt', resolveButton.dataset.alertPrompt || '');
+  setPopoverOpen(notificationToggle, notificationMenu, false);
+  loadDashboardView('ai-assistant', true);
+});
+
 if (profileButton && profileMenu) {
   const closeProfileMenu = () => {
     profileMenu.hidden = true;
@@ -626,8 +857,11 @@ const loadDashboardView = async (viewName, updateHistory = false) => {
     dashboardContent.innerHTML = newContent.innerHTML;
     renderDynamicTimes();
     loadDashboardProfile().catch(() => {});
+    initializeOverview();
+    initializeAlerts();
     initializeHivePage();
     initializeHarvestPage();
+    initializeAssistant();
     if (updateHistory) {
       window.history.pushState({ viewName }, '', route);
     }
@@ -656,6 +890,10 @@ window.addEventListener('popstate', () => {
   loadDashboardView(viewName);
 });
 
+initializeAssistant();
+initializeOverview();
+initializeAlerts();
+
 const initializeHivePage = () => {
   const hiveList = document.querySelector('#hive-list');
   const searchInput = document.querySelector('#hive-search-input');
@@ -668,6 +906,15 @@ const initializeHivePage = () => {
   if (!hiveList || !searchInput || !addForm) return;
   let hives = [];
 
+  const renderHivesLoading = () => {
+    hiveList.innerHTML = `
+      <div class="hive-loading" role="status" aria-live="polite">
+        <span class="hive-spinner" aria-hidden="true"></span>
+        <span>Loading your hives...</span>
+      </div>`;
+    summary.textContent = 'Fetching your hive data...';
+  };
+
   const renderHives = () => {
     const query = searchInput.value.trim().toLowerCase();
     const visibleHives = hives.filter((hive) =>
@@ -676,52 +923,64 @@ const initializeHivePage = () => {
     );
     hiveList.innerHTML = visibleHives.length ? visibleHives.map((hive) => {
       const statusClass = hive.status === 'Healthy' ? 'pill-good' : hive.status === 'Inactive' ? 'pill-inactive' : 'pill-warn';
-      const metric = (label, value) => `<div class="hive-metric"><span>${label}</span><b>${value || 'No data'}</b></div>`;
+      const metric = (label, value, unit = '') => {
+        const displayValue = value === null || value === undefined || value === '' ? 'No data' : `${value}${unit}`;
+        return `<div class="hive-metric"><span>${label}</span><b>${displayValue}</b></div>`;
+      };
       return `
       <article class="hive-list-item">
         <div class="hive-list-main">
-          <div class="hive-mark" aria-hidden="true">H</div>
+          <div class="hive-mark"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
           <div><h3>${hive.hive_id}</h3><span class="hive-location">At ${hive.location}</span><p>${hive.notes || 'Live hive monitoring is active for this hive.'}</p></div>
         </div>
         <div class="hive-metrics">
-          ${metric('Temperature', hive.temperature ? `${hive.temperature}°C` : null)}
-          ${metric('Humidity', hive.humidity ? `${hive.humidity}%` : null)}
-          ${metric('Weight', hive.weight ? `${hive.weight} kg` : null)}
-          ${metric('Acoustic index', hive.acoustic_index || 'No data')}
+          ${metric('Temperature', hive.temperature, '°C')}
+          ${metric('Humidity', hive.humidity, '%')}
+          ${metric('Weight', hive.weight, ' kg')}
+          ${metric('CO₂', hive.co2, ' ppm')}
         </div>
         <div class="hive-list-meta"><span>Installed</span><b>${hive.installation_date}</b><span>Species</span><b>${hive.bee_species}</b></div>
         <span class="status-pill ${statusClass}">${hive.status}</span>
         <div class="hive-actions">
           <button class="harvest-button" type="button" data-harvest-hive="${hive.hive_id}" data-honey-type="Wild Forest Honey" data-quantity="${hive.weight || 1}">Harvest</button>
-          <button class="remove-hive-button" type="button" data-hive-id="${hive.hive_id}">Remove</button>
+          <button class="toggle-hive-button" type="button" data-hive-id="${hive.hive_id}" data-hive-status="${hive.status}">${hive.status === 'Inactive' ? 'Set healthy' : 'Set inactive'}</button>
         </div>
       </article>`;
     }).join('') : '<p class="hive-empty">No hives match your search.</p>';
-    summary.textContent = `${hives.length} registered hive${hives.length === 1 ? '' : 's'} · Updates every 10 seconds`;
+    summary.textContent = `${hives.length} registered hive${hives.length === 1 ? '' : 's'}`;
     hiveList.querySelectorAll('[data-harvest-hive]').forEach(restoreHarvestCooldown);
   };
 
   const loadHives = async () => {
+    renderHivesLoading();
     const response = await fetch('/api/hives');
     if (!response.ok) throw new Error('Unable to load hives.');
     hives = await response.json();
     renderHives();
   };
 
+  const showHiveLoadError = (error) => {
+    hiveList.innerHTML = `<p class="hive-empty hive-load-error">${error.message || 'Unable to load hives.'}</p>`;
+    summary.textContent = 'Hive data could not be loaded.';
+  };
+
   searchInput.addEventListener('input', renderHives);
   hiveList.addEventListener('click', async (event) => {
-    const removeButton = event.target.closest('.remove-hive-button');
-    if (!removeButton) return;
+    const toggleButton = event.target.closest('.toggle-hive-button');
+    if (!toggleButton) return;
 
-    const hiveId = removeButton.dataset.hiveId;
-    if (!window.confirm(`Remove hive ${hiveId}?`)) return;
-
-    removeButton.disabled = true;
-    removeButton.textContent = 'Removing...';
-    const response = await fetch(`/api/hives/${encodeURIComponent(hiveId)}`, { method: 'DELETE' });
+    const hiveId = toggleButton.dataset.hiveId;
+    const nextStatus = toggleButton.dataset.hiveStatus === 'Inactive' ? 'Healthy' : 'Inactive';
+    toggleButton.disabled = true;
+    toggleButton.textContent = 'Updating...';
+    const response = await fetch(`/api/hives/${encodeURIComponent(hiveId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus }),
+    });
     if (!response.ok) {
-      removeButton.disabled = false;
-      removeButton.textContent = 'Remove';
+      toggleButton.disabled = false;
+      toggleButton.textContent = nextStatus === 'Inactive' ? 'Set inactive' : 'Set healthy';
       return;
     }
     await loadHives();
@@ -737,9 +996,7 @@ const initializeHivePage = () => {
     addForm.reset(); addForm.hidden = true; openButton.hidden = false; formStatus.textContent = '';
     await loadHives();
   });
-  loadHives().catch((error) => { summary.textContent = error.message; });
-  window.clearInterval(window.hiveRefreshTimer);
-  window.hiveRefreshTimer = window.setInterval(() => loadHives().catch(() => {}), 10000);
+  loadHives().catch(showHiveLoadError);
 };
 
 initializeHivePage();

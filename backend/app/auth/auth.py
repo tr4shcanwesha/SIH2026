@@ -1,6 +1,7 @@
 import os
 import secrets
-from typing import Optional
+import time
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Form, Header, HTTPException, Request
@@ -12,6 +13,8 @@ load_dotenv()
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+ACCESS_TOKEN_COOKIE = "honeychain_access_token"
+REFRESH_TOKEN_COOKIE = "honeychain_refresh_token"
 
 
 def get_cookie_security() -> bool:
@@ -20,11 +23,6 @@ def get_cookie_security() -> bool:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-ADMIN_USERNAME = "honey"
-ADMIN_PASSWORD = "chain"
-active_sessions: dict[str, str] = {}
-pending_sessions: dict[str, str] = {}
-admin_sessions: set[str] = set()
 
 
 def new_beekeeper_id() -> str:
@@ -70,31 +68,77 @@ def get_beekeeper_status_by_id(beekeeper_id: Optional[str]) -> str:
     return status if status in {"pending", "approved", "rejected"} else "pending"
 
 
-def create_admin_session() -> str:
-    session_id = secrets.token_urlsafe(32)
-    active_sessions[session_id] = ""
-    return session_id
+def get_authenticated_user(request: Request) -> Any:
+    cached_user = getattr(request.state, "supabase_user", None)
+    if cached_user:
+        return cached_user
+
+    access_token = request.cookies.get(ACCESS_TOKEN_COOKIE)
+    if access_token:
+        for attempt in range(2):
+            try:
+                user_response = supabase.auth.get_user(access_token)
+                if user_response.user:
+                    request.state.supabase_user = user_response.user
+                    return user_response.user
+            except Exception:
+                if attempt == 0:
+                    time.sleep(0.15)
+
+    refresh_token = request.cookies.get(REFRESH_TOKEN_COOKIE)
+    if refresh_token:
+        for attempt in range(2):
+            try:
+                session_response = supabase.auth.refresh_session(refresh_token)
+                session = getattr(session_response, "session", None)
+                user = getattr(session_response, "user", None)
+                if session and user:
+                    request.state.supabase_user = user
+                    request.state.supabase_session = session
+                    return user
+            except Exception:
+                if attempt == 0:
+                    time.sleep(0.15)
+
+    raise HTTPException(status_code=401, detail="Authentication required")
 
 
-def has_admin_session(session_id: Optional[str]) -> bool:
-    return bool(session_id and (session_id in active_sessions or session_id in pending_sessions))
+def get_authenticated_email(request: Request) -> str:
+    user = get_authenticated_user(request)
+    email = getattr(user, "email", None)
+    if not email:
+        raise HTTPException(status_code=401, detail="Authenticated user has no email")
+    return email
 
 
-def get_session_beekeeper_id(session_id: Optional[str]) -> Optional[str]:
-    return active_sessions.get(session_id) if session_id else None
+def get_authenticated_beekeeper_id(request: Request) -> Optional[str]:
+    beekeeper = find_beekeeper(get_authenticated_email(request))
+    return beekeeper.get("beekeeper_id") if beekeeper else None
 
 
-def get_session_email(session_id: Optional[str]) -> Optional[str]:
-    return pending_sessions.get(session_id) if session_id else None
-
-
-def activate_beekeeper_session(session_id: str, beekeeper_id: str) -> None:
-    pending_sessions.pop(session_id, None)
-    active_sessions[session_id] = beekeeper_id
-
-
-def is_admin_session(session_id: Optional[str]) -> bool:
-    return bool(session_id and session_id in admin_sessions)
+def set_refreshed_auth_cookies(request: Request, response: Any) -> None:
+    session = getattr(request.state, "supabase_session", None)
+    if not session:
+        return
+    response.set_cookie(
+        key=ACCESS_TOKEN_COOKIE,
+        value=session.access_token,
+        path="/",
+        httponly=True,
+        samesite="lax",
+        secure=get_cookie_security(),
+        max_age=session.expires_in or 3600,
+    )
+    if session.refresh_token:
+        response.set_cookie(
+            key=REFRESH_TOKEN_COOKIE,
+            value=session.refresh_token,
+            path="/",
+            httponly=True,
+            samesite="lax",
+            secure=get_cookie_security(),
+            max_age=60 * 60 * 24 * 30,
+        )
 
 
 @router.get("/config")
@@ -106,45 +150,8 @@ def auth_config() -> dict[str, str]:
     }
 
 
-@router.post("/login", include_in_schema=False, response_model=None)
-def admin_login(
-    username: str = Form(...),
-    password: str = Form(...),
-) -> RedirectResponse | HTMLResponse:
-    if username != ADMIN_USERNAME or password != ADMIN_PASSWORD:
-        return HTMLResponse(
-            content=(
-                "<h1>Access denied</h1>"
-                "<p>The username or password is incorrect.</p>"
-                '<a href="/auth">Return to sign in</a>'
-            ),
-            status_code=401,
-        )
-
-    email = os.getenv("ADMIN_EMAIL", "honey@honeychain.local")
-    beekeeper = find_beekeeper(email)
-    status = get_beekeeper_status(email) if beekeeper else "pending"
-    destination = "/dashboard" if status == "approved" else "/onboarding?edit=1"
-    response = RedirectResponse(url=destination, status_code=303)
-    session_id = secrets.token_urlsafe(32)
-    admin_sessions.add(session_id)
-    if beekeeper:
-        activate_beekeeper_session(session_id, beekeeper["beekeeper_id"])
-    else:
-        pending_sessions[session_id] = email
-    response.set_cookie(
-        key="honeychain_session",
-        value=session_id,
-        httponly=True,
-        samesite="lax",
-        secure=get_cookie_security(),
-        max_age=3600,
-    )
-    return response
-
-
 @router.post("/google-session", include_in_schema=False, response_model=None)
-def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResponse:
+def google_session(access_token: str = Form(...), refresh_token: str = Form("")) -> RedirectResponse | HTMLResponse:
     try:
         user = supabase.auth.get_user(access_token)
     except Exception:
@@ -170,39 +177,43 @@ def google_session(access_token: str = Form(...)) -> RedirectResponse | HTMLResp
     else:
         destination = "/onboarding?status=pending"
     response = RedirectResponse(url=destination, status_code=303)
-    session_id = secrets.token_urlsafe(32)
-    if beekeeper:
-        activate_beekeeper_session(session_id, beekeeper["beekeeper_id"])
-    else:
-        pending_sessions[session_id] = email
     response.set_cookie(
-        key="honeychain_session",
-        value=session_id,
+        key=ACCESS_TOKEN_COOKIE,
+        value=access_token,
+        path="/",
         httponly=True,
         samesite="lax",
         secure=get_cookie_security(),
         max_age=3600,
     )
+    if refresh_token:
+        response.set_cookie(
+            key=REFRESH_TOKEN_COOKIE,
+            value=refresh_token,
+            path="/",
+            httponly=True,
+            samesite="lax",
+            secure=get_cookie_security(),
+            max_age=60 * 60 * 24 * 30,
+        )
     return response
 
 
 @router.post("/logout", include_in_schema=False)
 def admin_logout(request: Request) -> RedirectResponse:
-    session_id = request.cookies.get("honeychain_session")
-    active_sessions.pop(session_id, None)
-    pending_sessions.pop(session_id, None)
-    admin_sessions.discard(session_id)
     response = RedirectResponse(url="/", status_code=303)
-    response.delete_cookie("honeychain_session")
+    response.delete_cookie(ACCESS_TOKEN_COOKIE, path="/")
+    response.delete_cookie(REFRESH_TOKEN_COOKIE, path="/")
     return response
 
 
 @router.get("/session")
-def auth_session(authorization: Optional[str] = Header(default=None)) -> dict:
-    if not authorization or not authorization.startswith("Bearer "):
+def auth_session(request: Request, authorization: Optional[str] = Header(default=None)) -> dict:
+    access_token = request.cookies.get(ACCESS_TOKEN_COOKIE)
+    if authorization and authorization.startswith("Bearer "):
+        access_token = authorization.removeprefix("Bearer ").strip()
+    if not access_token:
         raise HTTPException(status_code=401, detail="A Supabase access token is required")
-
-    access_token = authorization.removeprefix("Bearer ").strip()
     try:
         user = supabase.auth.get_user(access_token)
     except Exception as error:

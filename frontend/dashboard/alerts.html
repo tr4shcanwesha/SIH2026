@@ -1,8 +1,27 @@
 <div class="dash-top">
-  <div><h2>Alerts</h2><p style="margin:0; color:var(--ink-soft); font-size:0.92rem;">Sensor and AI notifications requiring attention</p></div>
-  <div class="select-fake">2 open alerts</div>
+  <div><h2>Alerts</h2><p style="margin:0; color:var(--ink-soft); font-size:0.92rem;">Monitor hive conditions and take action when needed.</p></div>
+  <div class="select-fake" id="alerts-monitoring-status">Monitoring active</div>
 </div>
-<div class="panel-row">
-  <div class="panel"><h4>Open alerts</h4><p class="sub">Prioritized by hive health impact</p><div class="alert-list"><div class="alert-item"><span class="alert-dot dot-warn"></span><div>Hive 04 — possible varroa mite stress detected<br><span data-relative-minutes="120" style="color:var(--ink-soft); font-size:0.78rem;"></span></div></div><div class="alert-item"><span class="alert-dot dot-warn"></span><div>Hive 06 — weight drop suggests forage shortage<br><span data-relative-minutes="1440" style="color:var(--ink-soft); font-size:0.78rem;"></span></div></div></div></div>
-  <div class="panel"><h4>Resolved</h4><p class="sub">Recently closed notifications</p><div class="alert-item"><span class="alert-dot dot-good"></span><div>Hive 07 cleared for harvest window<br><span data-relative-minutes="4320" style="color:var(--ink-soft); font-size:0.78rem;"></span></div></div></div>
+
+<div class="kpi-row alerts-summary">
+  <div class="kpi-card"><span>Critical alerts</span><b id="alerts-critical-count">0</b><span class="kpi-trend trend-warn">Requires immediate attention</span></div>
+  <div class="kpi-card"><span>Warnings</span><b id="alerts-warning-count">0</b><span class="kpi-trend trend-warn">Keep an eye on these hives</span></div>
+  <div class="kpi-card"><span>Resolved today</span><b id="alerts-resolved-count">0</b><span class="kpi-trend trend-up">Handled alerts</span></div>
+  <div class="kpi-card"><span>Unresolved</span><b id="alerts-unresolved-count">0</b><span class="kpi-trend trend-warn">Alerts requiring action</span></div>
+</div>
+
+<div class="panel-row alerts-layout">
+  <div class="panel">
+    <div class="alerts-panel-head"><div><h4>Active alerts</h4><p class="sub">Prioritized by hive health impact</p></div><span class="alerts-count" id="alerts-count">0 alerts</span></div>
+    <div class="alerts-filters" id="alerts-filters">
+      <button class="alerts-filter active" type="button" data-alert-filter="all">All</button>
+      <button class="alerts-filter" type="button" data-alert-filter="critical">Critical</button>
+      <button class="alerts-filter" type="button" data-alert-filter="warning">Warning</button>
+    </div>
+    <div class="alerts-list" id="alerts-list" aria-live="polite"><p class="hive-empty">Loading alerts...</p></div>
+  </div>
+  <div>
+    <div class="panel"><div class="alerts-panel-head"><div><h4>Alert breakdown</h4><p class="sub">Current sensor rules</p></div></div><div id="alerts-breakdown"></div></div>
+    <div class="panel alerts-attention-panel"><div class="alerts-panel-head"><div><h4>Hives requiring attention</h4></div></div><div id="alerts-problem-hives"></div></div>
+  </div>
 </div>

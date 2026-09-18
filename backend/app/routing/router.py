@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi import Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from app.auth.auth import get_beekeeper_status_by_id, get_session_beekeeper_id, has_admin_session
+from app.auth.auth import get_authenticated_beekeeper_id, get_authenticated_user, get_beekeeper_status_by_id
 
 router = APIRouter()
 FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"
@@ -44,10 +44,11 @@ def auth_page() -> FileResponse:
 
 @router.get("/dashboard", include_in_schema=False, response_model=None)
 def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
-    session_id = request.cookies.get("honeychain_session")
-    if not has_admin_session(session_id):
+    try:
+        get_authenticated_user(request)
+    except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
-    beekeeper_id = get_session_beekeeper_id(session_id)
+    beekeeper_id = get_authenticated_beekeeper_id(request)
     if get_beekeeper_status_by_id(beekeeper_id) != "approved":
         return RedirectResponse(url="/onboarding?status=pending", status_code=303)
     return HTMLResponse(render_dashboard_shell())
@@ -55,10 +56,11 @@ def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
 
 @router.get("/onboarding", include_in_schema=False, response_model=None)
 def onboarding_page(request: Request) -> FileResponse | RedirectResponse:
-    session_id = request.cookies.get("honeychain_session")
-    if not has_admin_session(session_id):
+    try:
+        get_authenticated_user(request)
+    except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
-    beekeeper_id = get_session_beekeeper_id(session_id)
+    beekeeper_id = get_authenticated_beekeeper_id(request)
     if get_beekeeper_status_by_id(beekeeper_id) == "approved":
         return RedirectResponse(url="/dashboard", status_code=303)
     return FileResponse(FRONTEND_DIR / "auth" / "onboarding.html")
@@ -66,10 +68,11 @@ def onboarding_page(request: Request) -> FileResponse | RedirectResponse:
 
 @router.get("/profile", include_in_schema=False, response_model=None)
 def profile_page(request: Request) -> FileResponse | RedirectResponse:
-    session_id = request.cookies.get("honeychain_session")
-    if not has_admin_session(session_id):
+    try:
+        get_authenticated_user(request)
+    except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
-    beekeeper_id = get_session_beekeeper_id(session_id)
+    beekeeper_id = get_authenticated_beekeeper_id(request)
     if get_beekeeper_status_by_id(beekeeper_id) != "approved":
         return RedirectResponse(url="/onboarding?status=pending", status_code=303)
     return FileResponse(FRONTEND_DIR / "dashboard" / "profile.html")
@@ -77,8 +80,13 @@ def profile_page(request: Request) -> FileResponse | RedirectResponse:
 
 @router.get("/dashboard/{view_name}", include_in_schema=False, response_model=None)
 def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectResponse:
-    if not has_admin_session(request.cookies.get("honeychain_session")):
+    try:
+        get_authenticated_user(request)
+    except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
+    beekeeper_id = get_authenticated_beekeeper_id(request)
+    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
+        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
     try:
         filename = DASHBOARD_VIEWS[view_name]
     except KeyError as error:
@@ -86,7 +94,7 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
     view_file = FRONTEND_DIR / "dashboard" / filename
     dashboard_html = render_dashboard_shell()
     view_html = view_file.read_text(encoding="utf-8")
-    content_start = dashboard_html.index('<main class="dash-main" id="dashboard-content">')
+    content_start = dashboard_html.index('<main class="dash-main')
     content_end = dashboard_html.index("</main>", content_start)
     rendered_html = (
         dashboard_html[:content_start]
@@ -100,8 +108,13 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
 
 @router.get("/dashboard/batches/{batch_id}", include_in_schema=False, response_model=None)
 def batch_detail_page(request: Request, batch_id: str) -> FileResponse | RedirectResponse:
-    if not has_admin_session(request.cookies.get("honeychain_session")):
+    try:
+        get_authenticated_user(request)
+    except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
+    beekeeper_id = get_authenticated_beekeeper_id(request)
+    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
+        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
     return FileResponse(FRONTEND_DIR / "dashboard" / "batch.html")
 
 
@@ -113,11 +126,6 @@ def verify_page() -> FileResponse:
 @router.get("/verify/{batch_id}", include_in_schema=False)
 def verify_batch_page(batch_id: str) -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "verify.html")
-
-
-@router.get("/requests", include_in_schema=False, response_model=None)
-def requests_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "requests" / "requests.html")
 
 
 @router.get("/assets/landing/style.css", include_in_schema=False)
@@ -160,9 +168,19 @@ def dashboard_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "dashboard" / "style.css")
 
 
+@router.get("/assets/dashboard/assistant.css", include_in_schema=False)
+def assistant_styles() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dashboard" / "assistant.css")
+
+
 @router.get("/assets/dashboard/dashboard.js", include_in_schema=False)
 def dashboard_script() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "dashboard" / "dashboard.js")
+
+
+@router.get("/assets/dashboard/assistant.js", include_in_schema=False)
+def assistant_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "dashboard" / "assistant.js")
 
 
 @router.get("/assets/dashboard/batch.css", include_in_schema=False)
@@ -216,13 +234,3 @@ def serve_frontend_image(filename: str) -> FileResponse:
 @router.get("/assets/verify/style.css", include_in_schema=False)
 def verify_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "style.css")
-
-
-@router.get("/assets/requests/style.css", include_in_schema=False)
-def requests_styles() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "requests" / "style.css")
-
-
-@router.get("/assets/requests/requests.js", include_in_schema=False)
-def requests_script() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "requests" / "requests.js")
