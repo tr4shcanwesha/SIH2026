@@ -115,6 +115,11 @@ def verify_batch_page(batch_id: str) -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "verify.html")
 
 
+@router.get("/requests", include_in_schema=False, response_model=None)
+def requests_page() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "requests" / "requests.html")
+
+
 @router.get("/assets/landing/style.css", include_in_schema=False)
 def landing_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "landing" / "style.css")
@@ -211,3 +216,13 @@ def serve_frontend_image(filename: str) -> FileResponse:
 @router.get("/assets/verify/style.css", include_in_schema=False)
 def verify_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "style.css")
+
+
+@router.get("/assets/requests/style.css", include_in_schema=False)
+def requests_styles() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "requests" / "style.css")
+
+
+@router.get("/assets/requests/requests.js", include_in_schema=False)
+def requests_script() -> FileResponse:
+    return FileResponse(FRONTEND_DIR / "requests" / "requests.js")

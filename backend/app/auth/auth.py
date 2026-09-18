@@ -24,6 +24,7 @@ ADMIN_USERNAME = "honey"
 ADMIN_PASSWORD = "chain"
 active_sessions: dict[str, str] = {}
 pending_sessions: dict[str, str] = {}
+admin_sessions: set[str] = set()
 
 
 def new_beekeeper_id() -> str:
@@ -92,6 +93,10 @@ def activate_beekeeper_session(session_id: str, beekeeper_id: str) -> None:
     active_sessions[session_id] = beekeeper_id
 
 
+def is_admin_session(session_id: Optional[str]) -> bool:
+    return bool(session_id and session_id in admin_sessions)
+
+
 @router.get("/config")
 def auth_config() -> dict[str, str]:
     """Expose only the public Supabase values needed by the browser client."""
@@ -122,6 +127,7 @@ def admin_login(
     destination = "/dashboard" if status == "approved" else "/onboarding?edit=1"
     response = RedirectResponse(url=destination, status_code=303)
     session_id = secrets.token_urlsafe(32)
+    admin_sessions.add(session_id)
     if beekeeper:
         activate_beekeeper_session(session_id, beekeeper["beekeeper_id"])
     else:
@@ -185,6 +191,7 @@ def admin_logout(request: Request) -> RedirectResponse:
     session_id = request.cookies.get("honeychain_session")
     active_sessions.pop(session_id, None)
     pending_sessions.pop(session_id, None)
+    admin_sessions.discard(session_id)
     response = RedirectResponse(url="/", status_code=303)
     response.delete_cookie("honeychain_session")
     return response

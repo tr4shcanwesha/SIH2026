@@ -9,8 +9,8 @@ const isProvisionalBatch = (batch) => !batch.honey_type
   || batch.honey_type === 'Pending processing';
 
 const escapeHtml = (value) => String(value ?? '-').replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
-const formatDate = (value) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value)) : '-';
-const formatDateTime = (value) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-';
+const formatDate = (value) => value ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeZone: 'Asia/Kolkata' }).format(new Date(value)) : '-';
+const formatDateTime = (value) => value ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', hour12: true, timeZone: 'Asia/Kolkata' }).format(new Date(value)) : '-';
 
 const renderJourney = (status) => {
   const stages = [
@@ -72,23 +72,12 @@ const loadBatch = async () => {
   document.querySelector('#sync-label').textContent = `Loaded ${new Date().toLocaleTimeString([], { timeStyle: 'short' })}`;
 };
 
-const downloadCertificate = () => {
-  if (!currentBatch || !window.jspdf?.jsPDF) return;
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  const width = 297;
-  pdf.setFillColor(252, 246, 218); pdf.rect(0, 0, width, 210, 'F');
-  pdf.setDrawColor(181, 133, 43); pdf.setLineWidth(.7); pdf.rect(12, 12, width - 24, 186); pdf.rect(17, 17, width - 34, 176);
-  pdf.setTextColor(143, 96, 24); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.text('HONEYCHAIN  /  COLLECTION CENTER', width / 2, 36, { align: 'center' });
-  pdf.setTextColor(48, 36, 22); pdf.setFont('times', 'bold'); pdf.setFontSize(31); pdf.text('Certificate of Processed Honey', width / 2, 61, { align: 'center' });
-  pdf.setFont('helvetica', 'normal'); pdf.setFontSize(11); pdf.setTextColor(102, 80, 48); pdf.text('This certificate confirms that the batch below passed the HoneyChain collection center release protocol.', width / 2, 73, { align: 'center' });
-  pdf.setTextColor(48, 36, 22); pdf.setFontSize(15); pdf.text(currentBatch.batch_id, width / 2, 95, { align: 'center' });
-  pdf.setDrawColor(48, 36, 22); pdf.line(54, 104, 243, 104);
-  const rows = [['BEEKEEPER', profile?.beekeeper?.name || 'Verified beekeeper'], ['HONEY PROFILE', currentBatch.honey_type || 'Wildflower honey'], ['ORIGIN HIVE', currentBatch.hive_id], ['VOLUME', `${currentBatch.quantity} kg`], ['QUALITY GRADE', 'A+ / Premium raw honey'], ['RELEASED', formatDateTime(new Date())]];
-  pdf.setFontSize(9); rows.forEach(([label, value], index) => { const x = 100 + (index % 2) * 97; const y = 121 + Math.floor(index / 2) * 20; pdf.setTextColor(117, 86, 38); pdf.text(label, x, y, { align: 'center' }); pdf.setTextColor(48, 36, 22); pdf.setFont('helvetica', 'bold'); pdf.text(String(value), x, y + 7, { align: 'center', maxWidth: 82 }); pdf.setFont('helvetica', 'normal'); });
-  pdf.setTextColor(143, 96, 24); pdf.setFontSize(8); pdf.text('AUTHENTICITY RECORD', 270, 178, { align: 'right' }); pdf.setTextColor(102, 80, 48); pdf.text('Issued by HoneyChain Collection Center  ·  Ledger linked', 270, 185, { align: 'right' });
-  pdf.save(`${currentBatch.batch_id}-honeychain-certificate.pdf`);
+const openCertificate = () => {
+  if (!currentBatch) return;
+  window.open(`/api/public/batches/${encodeURIComponent(currentBatch.batch_id)}/certificate`, '_blank', 'noopener');
 };
 
-document.querySelector('#certificate-button').addEventListener('click', downloadCertificate);
+document.querySelector('#certificate-button').addEventListener('click', () => {
+  openCertificate();
+});
 loadBatch().catch((error) => { const node = document.querySelector('#error-message'); node.textContent = error.message; node.hidden = false; });

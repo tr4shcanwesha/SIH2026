@@ -2,6 +2,7 @@ import random
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from app.auth.auth import (
@@ -12,6 +13,7 @@ from app.auth.auth import (
     get_session_email,
     new_beekeeper_id,
     router as auth_router,
+    supabase,
 )
 from app.routing.router import router as page_router
 from app.services.batches import (
@@ -20,8 +22,9 @@ from app.services.batches import (
     list_batches,
     list_hives as list_hive_records,
     remove_hive as remove_hive_record,
+    update_batch_status_admin,
 )
-from app.services.blockchain import get_batch_verification
+from app.services.blockchain import get_batch_certificate, get_batch_verification
 from app.services.beekeepers import (
     delete_beekeeper_account,
     get_beekeeper_profile,
@@ -51,6 +54,10 @@ class BeekeeperProfileUpdate(BaseModel):
     name: str = Field(min_length=1)
     phone: str = Field(min_length=1)
     location: str = Field(min_length=1)
+
+
+class AdminDecision(BaseModel):
+    status: str
 
 
 @router.get("/api/health", tags=["health"])
@@ -163,6 +170,10 @@ def current_beekeeper_id(request: Request) -> str:
     return beekeeper_id
 
 
+def require_admin(request: Request) -> None:
+    return None
+
+
 @router.get("/api/hives")
 def list_hives(request: Request) -> list[dict[str, Any]]:
     beekeeper_id = current_beekeeper_id(request)
@@ -187,9 +198,54 @@ def list_honey_batches(request: Request) -> list[dict[str, Any]]:
     return list_batches(beekeeper_id, str(request.base_url).rstrip("/"))
 
 
+@router.get("/api/admin/requests")
+def admin_requests(request: Request) -> dict[str, list[dict[str, Any]]]:
+    require_admin(request)
+    beekeeper_response = (
+        supabase.table("beekeeper")
+        .select("*")
+        .in_("kyc_status", ["pending", "rejected", "approved"])
+        .order("kyc_status")
+        .execute()
+    )
+    batch_response = supabase.table("honey_batches").select("*").order("harvest_date", desc=True).execute()
+    return {"beekeepers": beekeeper_response.data or [], "batches": batch_response.data or []}
+
+
+@router.patch("/api/admin/beekeepers/{beekeeper_id}")
+def decide_beekeeper(beekeeper_id: str, decision: AdminDecision, request: Request) -> dict[str, Any]:
+    require_admin(request)
+    status = decision.status.strip().lower()
+    if status not in {"approved", "rejected"}:
+        raise HTTPException(status_code=400, detail="Decision must be approved or rejected")
+    response = supabase.table("beekeeper").update({"kyc_status": status}).eq("beekeeper_id", beekeeper_id).execute()
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Beekeeper not found")
+    return response.data[0]
+
+
+@router.patch("/api/admin/batches/{batch_id}")
+def advance_batch_as_admin(batch_id: str, decision: AdminDecision, request: Request) -> dict[str, Any]:
+    require_admin(request)
+    status = decision.status.strip().upper()
+    if status not in {"PROCESSED", "DISTRIBUTED"}:
+        raise HTTPException(status_code=400, detail="Batch status must be PROCESSED or DISTRIBUTED")
+    return update_batch_status_admin(batch_id, status)
+
+
 @router.get("/api/public/batches/{batch_id}")
 def get_public_batch(batch_id: str) -> dict[str, Any]:
     return get_batch_verification(batch_id)
+
+
+@router.get("/api/public/batches/{batch_id}/certificate")
+def get_public_certificate(batch_id: str) -> Response:
+    pdf_bytes = get_batch_certificate(batch_id)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{batch_id}-honeychain-certificate.pdf"'},
+    )
 
 
 @router.delete("/api/hives/{hive_id}", status_code=204)

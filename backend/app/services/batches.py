@@ -1,11 +1,131 @@
+import json
+import os
 import secrets
-from datetime import date
+from io import BytesIO
+from datetime import date, datetime, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.pdfgen import canvas
 
 from app.auth.auth import supabase
 from app.services.blockchain import append_batch_block
+
+
+CERTIFICATE_BUCKET = os.getenv("SUPABASE_CERTIFICATE_BUCKET", "honey-certificates")
+
+
+LAB_RESULTS = {
+    "quality_grade": "A+",
+    "moisture_percent": 17.4,
+    "ph": 4.1,
+    "hmf_mg_per_kg": 8.6,
+    "adulteration_screen": "Clear",
+    "pollen_profile": "Multifloral signature confirmed",
+    "test_method": "HoneyChain Collection Lab protocol",
+}
+
+
+def issue_certificate(batch: dict[str, Any], hive: dict[str, Any]) -> dict[str, Any]:
+    existing = (
+        supabase.table("batch_certificates")
+        .select("*")
+        .eq("batch_id", batch["batch_id"])
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        return existing.data[0]
+
+    issued_at = datetime.now(timezone.utc).isoformat()
+    certificate = {
+        "certificate_id": f"HC-CERT-{batch['batch_id'].removeprefix('HB-')}",
+        "batch_id": batch["batch_id"],
+        "issued_at": issued_at,
+        "lab_name": "HoneyChain Collection Lab",
+        "results": LAB_RESULTS,
+    }
+    beekeeper_response = (
+        supabase.table("beekeeper")
+        .select("name")
+        .eq("beekeeper_id", hive.get("beekeeper_id"))
+        .limit(1)
+        .execute()
+    )
+    beekeeper_name = (
+        beekeeper_response.data[0].get("name")
+        if beekeeper_response.data
+        else "Verified beekeeper"
+    )
+    pdf_buffer = BytesIO()
+    pdf = canvas.Canvas(pdf_buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
+    pdf.setFillColor(colors.HexColor("#FCF6DA"))
+    pdf.rect(0, 0, width, height, fill=1, stroke=0)
+    pdf.setStrokeColor(colors.HexColor("#B5852B"))
+    pdf.setLineWidth(0.7)
+    pdf.rect(34, 30, width - 68, height - 60, fill=0, stroke=1)
+    pdf.setLineWidth(0.45)
+    pdf.rect(48, 44, width - 96, height - 88, fill=0, stroke=1)
+    pdf.setFillColor(colors.HexColor("#8F6018"))
+    pdf.setFont("Helvetica-Bold", 11)
+    pdf.drawCentredString(width / 2, height - 63, "HONEYCHAIN  /  COLLECTION CENTER")
+    pdf.setFillColor(colors.HexColor("#302416"))
+    pdf.setFont("Times-Bold", 28)
+    pdf.drawCentredString(width / 2, height - 106, "Certificate of Processed Honey")
+    pdf.setFont("Helvetica", 10)
+    pdf.setFillColor(colors.HexColor("#665030"))
+    pdf.drawCentredString(width / 2, height - 130, "This certificate confirms that the batch below passed the HoneyChain collection center release protocol.")
+    pdf.setFillColor(colors.HexColor("#302416"))
+    pdf.setFont("Helvetica-Bold", 15)
+    pdf.drawCentredString(width / 2, height - 176, batch["batch_id"])
+    pdf.setStrokeColor(colors.HexColor("#302416"))
+    pdf.setLineWidth(0.8)
+    pdf.line(145, height - 196, width - 145, height - 196)
+    released_at = datetime.fromisoformat(issued_at).astimezone(ZoneInfo("Asia/Kolkata"))
+    released_label = released_at.strftime("%b %d, %Y, %I:%M %p")
+    rows = [
+        ("BEEKEEPER", beekeeper_name),
+        ("HONEY PROFILE", batch.get("honey_type", "Raw honey")),
+        ("ORIGIN HIVE", batch["hive_id"]),
+        ("VOLUME", f"{batch.get('quantity', '-')} kg"),
+        ("QUALITY GRADE", LAB_RESULTS["quality_grade"]),
+        ("RELEASED", released_label),
+    ]
+    pdf.setFont("Helvetica-Bold", 8)
+    for index, (label, value) in enumerate(rows):
+        x = 283 + (index % 2) * 275
+        y = height - 250 - (index // 2) * 44
+        pdf.setFillColor(colors.HexColor("#755626"))
+        pdf.drawCentredString(x, y, label)
+        pdf.setFillColor(colors.HexColor("#302416"))
+        pdf.setFont("Helvetica-Bold", 9)
+        pdf.drawCentredString(x, y - 14, str(value)[:42])
+        pdf.setFont("Helvetica-Bold", 8)
+    pdf.setFillColor(colors.HexColor("#8F6018"))
+    pdf.setFont("Helvetica-Bold", 8)
+    pdf.drawRightString(width - 58, 76, "AUTHENTICITY RECORD")
+    pdf.setFillColor(colors.HexColor("#665030"))
+    pdf.setFont("Helvetica", 8)
+    pdf.drawRightString(width - 58, 60, "Issued by HoneyChain Collection Center  ·  Ledger linked")
+    pdf.save()
+    certificate_path = f"certificates/{batch['batch_id']}.pdf"
+    try:
+        supabase.storage.from_(CERTIFICATE_BUCKET).upload(
+            certificate_path,
+            pdf_buffer.getvalue(),
+            {"content-type": "application/pdf", "upsert": "true"},
+        )
+    except Exception as error:
+        raise HTTPException(status_code=502, detail="Certificate storage upload failed") from error
+    certificate["storage_path"] = certificate_path
+    response = supabase.table("batch_certificates").insert(certificate).execute()
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Certificate record could not be created")
+    return response.data[0]
 
 
 def list_hives(beekeeper_id: str) -> list[dict[str, Any]]:
@@ -113,6 +233,33 @@ def update_batch_status(batch_id: str, status: str, beekeeper_id: str) -> dict[s
         raise HTTPException(status_code=404, detail="Beekeeper not found")
     updated_batch = response.data[0]
     append_batch_block(updated_batch, owned_hive.data[0], f"STATUS_{status}")
+    if status == "PROCESSED":
+        certificate = issue_certificate(updated_batch, owned_hive.data[0])
+        append_batch_block(updated_batch, owned_hive.data[0], "CERTIFICATE_ISSUED", certificate)
+    return updated_batch
+
+
+def update_batch_status_admin(batch_id: str, status: str) -> dict[str, Any]:
+    batch_response = supabase.table("honey_batches").select("*").eq("batch_id", batch_id).limit(1).execute()
+    if not batch_response.data:
+        raise HTTPException(status_code=404, detail="Honey batch not found")
+    batch = batch_response.data[0]
+    current_status = str(batch["status"]).upper()
+    expected_next = {"HARVESTED": "PROCESSED", "PROCESSED": "DISTRIBUTED"}.get(current_status)
+    if status != expected_next:
+        raise HTTPException(status_code=409, detail="Invalid batch status transition")
+    hive_response = supabase.table("hives").select("*").eq("hive_id", batch["hive_id"]).limit(1).execute()
+    if not hive_response.data:
+        raise HTTPException(status_code=404, detail="Hive not found for honey batch")
+    response = supabase.table("honey_batches").update({"status": status}).eq("batch_id", batch_id).execute()
+    if not response.data:
+        raise HTTPException(status_code=400, detail="Honey batch status could not be updated")
+    updated_batch = response.data[0]
+    hive = hive_response.data[0]
+    append_batch_block(updated_batch, hive, f"STATUS_{status}")
+    if status == "PROCESSED":
+        certificate = issue_certificate(updated_batch, hive)
+        append_batch_block(updated_batch, hive, "CERTIFICATE_ISSUED", certificate)
     return updated_batch
 
 
