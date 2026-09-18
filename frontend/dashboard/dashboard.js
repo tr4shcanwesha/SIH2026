@@ -2,6 +2,7 @@ const profileButton = document.querySelector('.profile-button');
 const profileMenu = document.querySelector('#profile-menu');
 const notificationToggle = document.querySelector('#notification-toggle');
 const notificationMenu = document.querySelector('#notification-menu');
+
 let harvestBatches = [];
 let harvestHives = new Map();
 let harvestCarouselOffset = 0;
@@ -193,6 +194,14 @@ renderDynamicTimes();
 loadDashboardProfile().catch(() => {});
 
 const loadHarvestBatches = async () => {
+  const harvestList = document.querySelector('#harvest-list');
+  if (harvestList) {
+    harvestList.innerHTML = `
+      <div class="hive-loading" role="status" aria-live="polite">
+        <span class="hive-spinner" aria-hidden="true"></span>
+        <span>Loading your harvests...</span>
+      </div>`;
+  }
   const [batchResponse, hiveResponse] = await Promise.all([
     fetch('/api/honey-batches'),
     fetch('/api/hives'),
@@ -799,6 +808,15 @@ const initializeHivePage = () => {
   if (!hiveList || !searchInput || !addForm) return;
   let hives = [];
 
+  const renderHivesLoading = () => {
+    hiveList.innerHTML = `
+      <div class="hive-loading" role="status" aria-live="polite">
+        <span class="hive-spinner" aria-hidden="true"></span>
+        <span>Loading your hives...</span>
+      </div>`;
+    summary.textContent = 'Fetching your hive data...';
+  };
+
   const renderHives = () => {
     const query = searchInput.value.trim().toLowerCase();
     const visibleHives = hives.filter((hive) =>
@@ -831,15 +849,21 @@ const initializeHivePage = () => {
         </div>
       </article>`;
     }).join('') : '<p class="hive-empty">No hives match your search.</p>';
-    summary.textContent = `${hives.length} registered hive${hives.length === 1 ? '' : 's'} · Updates every 10 seconds`;
+    summary.textContent = `${hives.length} registered hive${hives.length === 1 ? '' : 's'}`;
     hiveList.querySelectorAll('[data-harvest-hive]').forEach(restoreHarvestCooldown);
   };
 
   const loadHives = async () => {
+    renderHivesLoading();
     const response = await fetch('/api/hives');
     if (!response.ok) throw new Error('Unable to load hives.');
     hives = await response.json();
     renderHives();
+  };
+
+  const showHiveLoadError = (error) => {
+    hiveList.innerHTML = `<p class="hive-empty hive-load-error">${error.message || 'Unable to load hives.'}</p>`;
+    summary.textContent = 'Hive data could not be loaded.';
   };
 
   searchInput.addEventListener('input', renderHives);
@@ -874,9 +898,7 @@ const initializeHivePage = () => {
     addForm.reset(); addForm.hidden = true; openButton.hidden = false; formStatus.textContent = '';
     await loadHives();
   });
-  loadHives().catch((error) => { summary.textContent = error.message; });
-  window.clearInterval(window.hiveRefreshTimer);
-  window.hiveRefreshTimer = window.setInterval(() => loadHives().catch(() => {}), 10000);
+  loadHives().catch(showHiveLoadError);
 };
 
 initializeHivePage();

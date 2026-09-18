@@ -1,5 +1,6 @@
 import os
 import secrets
+import time
 from typing import Any, Optional
 
 from dotenv import load_dotenv
@@ -74,26 +75,30 @@ def get_authenticated_user(request: Request) -> Any:
 
     access_token = request.cookies.get(ACCESS_TOKEN_COOKIE)
     if access_token:
-        try:
-            user_response = supabase.auth.get_user(access_token)
-            if user_response.user:
-                request.state.supabase_user = user_response.user
-                return user_response.user
-        except Exception:
-            pass
+        for attempt in range(2):
+            try:
+                user_response = supabase.auth.get_user(access_token)
+                if user_response.user:
+                    request.state.supabase_user = user_response.user
+                    return user_response.user
+            except Exception:
+                if attempt == 0:
+                    time.sleep(0.15)
 
     refresh_token = request.cookies.get(REFRESH_TOKEN_COOKIE)
     if refresh_token:
-        try:
-            session_response = supabase.auth.refresh_session(refresh_token)
-            session = getattr(session_response, "session", None)
-            user = getattr(session_response, "user", None)
-            if session and user:
-                request.state.supabase_user = user
-                request.state.supabase_session = session
-                return user
-        except Exception:
-            pass
+        for attempt in range(2):
+            try:
+                session_response = supabase.auth.refresh_session(refresh_token)
+                session = getattr(session_response, "session", None)
+                user = getattr(session_response, "user", None)
+                if session and user:
+                    request.state.supabase_user = user
+                    request.state.supabase_session = session
+                    return user
+            except Exception:
+                if attempt == 0:
+                    time.sleep(0.15)
 
     raise HTTPException(status_code=401, detail="Authentication required")
 
@@ -118,6 +123,7 @@ def set_refreshed_auth_cookies(request: Request, response: Any) -> None:
     response.set_cookie(
         key=ACCESS_TOKEN_COOKIE,
         value=session.access_token,
+        path="/",
         httponly=True,
         samesite="lax",
         secure=get_cookie_security(),
@@ -127,6 +133,7 @@ def set_refreshed_auth_cookies(request: Request, response: Any) -> None:
         response.set_cookie(
             key=REFRESH_TOKEN_COOKIE,
             value=session.refresh_token,
+            path="/",
             httponly=True,
             samesite="lax",
             secure=get_cookie_security(),
@@ -173,6 +180,7 @@ def google_session(access_token: str = Form(...), refresh_token: str = Form(""))
     response.set_cookie(
         key=ACCESS_TOKEN_COOKIE,
         value=access_token,
+        path="/",
         httponly=True,
         samesite="lax",
         secure=get_cookie_security(),
@@ -182,6 +190,7 @@ def google_session(access_token: str = Form(...), refresh_token: str = Form(""))
         response.set_cookie(
             key=REFRESH_TOKEN_COOKIE,
             value=refresh_token,
+            path="/",
             httponly=True,
             samesite="lax",
             secure=get_cookie_security(),
@@ -193,8 +202,8 @@ def google_session(access_token: str = Form(...), refresh_token: str = Form(""))
 @router.post("/logout", include_in_schema=False)
 def admin_logout(request: Request) -> RedirectResponse:
     response = RedirectResponse(url="/", status_code=303)
-    response.delete_cookie(ACCESS_TOKEN_COOKIE)
-    response.delete_cookie(REFRESH_TOKEN_COOKIE)
+    response.delete_cookie(ACCESS_TOKEN_COOKIE, path="/")
+    response.delete_cookie(REFRESH_TOKEN_COOKIE, path="/")
     return response
 
 

@@ -54,7 +54,7 @@ const initializeAssistant = () => {
       const item = document.createElement('article');
       item.className = `assistant-message ${entry.role}`;
       const safeContent = String(entry.content).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])).replace(/\n/g, '<br>');
-      item.innerHTML = `<div class="assistant-avatar">${entry.role === 'assistant' ? '<img src="/src/images/logo.png" alt="HoneyChain logo" />' : 'YOU'}</div><div class="assistant-bubble">${safeContent}</div>`;
+      item.innerHTML = `<div class="assistant-avatar">${entry.role === 'assistant' ? '<img src="/src/images/logo.png?v=2" alt="HoneyChain logo" />' : 'YOU'}</div><div class="assistant-bubble">${safeContent}</div>`;
       thread.appendChild(item);
     });
     scrollThread();
@@ -66,7 +66,7 @@ const initializeAssistant = () => {
     const safeContent = pending
       ? '<span class="typing-dots"><i></i><i></i><i></i></span>'
       : String(content).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character])).replace(/\n/g, '<br>');
-    const avatarMarkup = role === 'assistant' ? '<img src="/src/images/logo.png" alt="HoneyChain logo" />' : 'YOU';
+    const avatarMarkup = role === 'assistant' ? '<img src="/src/images/logo.png?v=2" alt="HoneyChain logo" />' : 'YOU';
     item.innerHTML = `<div class="assistant-avatar">${avatarMarkup}</div><div class="assistant-bubble">${safeContent}</div>`;
     thread.appendChild(item);
     scrollThread();

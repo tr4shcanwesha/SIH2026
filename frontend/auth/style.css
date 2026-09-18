@@ -1,3 +1,19 @@
+.oauth-callback-pending body > * {
+  visibility: hidden;
+}
+
+.oauth-callback-pending::after {
+  content: "Securing your HoneyChain session...";
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--comb-900);
+  background: var(--wax-100);
+  font: 600 1rem var(--font-body);
+  z-index: 1000;
+}
+
 .auth-shell{
   min-height:calc(100vh - 73px);
   display:grid;

@@ -84,6 +84,9 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
         get_authenticated_user(request)
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
+    beekeeper_id = get_authenticated_beekeeper_id(request)
+    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
+        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
     try:
         filename = DASHBOARD_VIEWS[view_name]
     except KeyError as error:
@@ -109,6 +112,9 @@ def batch_detail_page(request: Request, batch_id: str) -> FileResponse | Redirec
         get_authenticated_user(request)
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
+    beekeeper_id = get_authenticated_beekeeper_id(request)
+    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
+        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
     return FileResponse(FRONTEND_DIR / "dashboard" / "batch.html")
 
 

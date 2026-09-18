@@ -45,8 +45,10 @@ async function exchangeGoogleSession() {
   const isOAuthCallback = window.location.hash.includes('access_token') || query.has('code');
   if (!isOAuthCallback) return;
 
+  document.documentElement.classList.add('oauth-callback-pending');
+
   const configResponse = await fetch('/api/auth/config');
-  if (!configResponse.ok) return;
+  if (!configResponse.ok) throw new Error('Authentication is unavailable.');
 
   const config = await configResponse.json();
   window.__HONEYCHAIN_SUPABASE_URL = config.supabase_url;
@@ -54,7 +56,7 @@ async function exchangeGoogleSession() {
   const supabaseClient = createSupabaseClient();
   const { data: { session } } = await supabaseClient.auth.getSession();
 
-  if (!session?.access_token) return;
+  if (!session?.access_token) throw new Error('Google did not return a valid session.');
 
   const form = document.createElement('form');
   form.method = 'post';
@@ -78,5 +80,6 @@ async function exchangeGoogleSession() {
 
 googleButton.addEventListener('click', startGoogleSignIn);
 exchangeGoogleSession().catch((error) => {
+  document.documentElement.classList.remove('oauth-callback-pending');
   googleStatus.textContent = error.message;
 });

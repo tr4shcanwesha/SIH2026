@@ -48,6 +48,7 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
 .container{max-width:1180px;margin:0 auto;padding:0 28px;}
 :focus-visible{outline:3px solid var(--verified-teal);outline-offset:2px;}
 
+
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;}
 }
@@ -265,6 +266,10 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
 .toggle-hive-button:disabled{opacity:.6; cursor:wait;}
 .pill-inactive{background:rgba(91,74,56,.14); color:var(--ink-soft);}
 .hive-empty{padding:24px; text-align:center; color:var(--ink-soft); background:var(--wax-50); border:1px dashed var(--line); border-radius:var(--radius-cell);}
+.hive-loading{display:flex;align-items:center;justify-content:center;gap:10px;min-height:110px;padding:24px;color:var(--ink-soft);background:var(--wax-50);border:1px solid var(--line);border-radius:var(--radius-cell);}
+.hive-spinner{width:18px;height:18px;border:2px solid rgba(31,111,92,.2);border-top-color:var(--verified-teal);border-radius:50%;animation:hive-spin .75s linear infinite;}
+.hive-load-error{color:var(--alert-rust);}
+@keyframes hive-spin{to{transform:rotate(360deg);}}
 .hive-card{
   background:var(--wax-50); border:1px solid var(--line); border-radius:var(--radius-cell); padding:22px;
   border-top:4px solid var(--hive-green);
