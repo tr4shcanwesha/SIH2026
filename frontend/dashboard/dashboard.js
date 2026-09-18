@@ -676,7 +676,10 @@ const initializeHivePage = () => {
     );
     hiveList.innerHTML = visibleHives.length ? visibleHives.map((hive) => {
       const statusClass = hive.status === 'Healthy' ? 'pill-good' : hive.status === 'Inactive' ? 'pill-inactive' : 'pill-warn';
-      const metric = (label, value) => `<div class="hive-metric"><span>${label}</span><b>${value || 'No data'}</b></div>`;
+      const metric = (label, value, unit = '') => {
+        const displayValue = value === null || value === undefined || value === '' ? 'No data' : `${value}${unit}`;
+        return `<div class="hive-metric"><span>${label}</span><b>${displayValue}</b></div>`;
+      };
       return `
       <article class="hive-list-item">
         <div class="hive-list-main">
@@ -684,10 +687,10 @@ const initializeHivePage = () => {
           <div><h3>${hive.hive_id}</h3><span class="hive-location">At ${hive.location}</span><p>${hive.notes || 'Live hive monitoring is active for this hive.'}</p></div>
         </div>
         <div class="hive-metrics">
-          ${metric('Temperature', hive.temperature ? `${hive.temperature}°C` : null)}
-          ${metric('Humidity', hive.humidity ? `${hive.humidity}%` : null)}
-          ${metric('Weight', hive.weight ? `${hive.weight} kg` : null)}
-          ${metric('Acoustic index', hive.acoustic_index || 'No data')}
+          ${metric('Temperature', hive.temperature, '°C')}
+          ${metric('Humidity', hive.humidity, '%')}
+          ${metric('Weight', hive.weight, ' kg')}
+          ${metric('CO₂', hive.co2, ' ppm')}
         </div>
         <div class="hive-list-meta"><span>Installed</span><b>${hive.installation_date}</b><span>Species</span><b>${hive.bee_species}</b></div>
         <span class="status-pill ${statusClass}">${hive.status}</span>

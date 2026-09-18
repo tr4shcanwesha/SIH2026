@@ -130,7 +130,37 @@ def issue_certificate(batch: dict[str, Any], hive: dict[str, Any]) -> dict[str, 
 
 def list_hives(beekeeper_id: str) -> list[dict[str, Any]]:
     response = supabase.table("hives").select("*").eq("beekeeper_id", beekeeper_id).order("hive_id").execute()
-    return response.data or []
+    hives = response.data or []
+    if not hives:
+        return []
+
+    hive_ids = [hive["hive_id"] for hive in hives]
+    iot_response = (
+        supabase.table("hive_iot_data")
+        .select("hive_id, recorded_at, temperature, humidity, co2, weight, sound, bee_count")
+        .in_("hive_id", hive_ids)
+        .order("recorded_at", desc=True)
+        .execute()
+    )
+    latest_iot_by_hive: dict[str, dict[str, Any]] = {}
+    for reading in iot_response.data or []:
+        latest_iot_by_hive.setdefault(reading["hive_id"], reading)
+
+    for hive in hives:
+        latest_iot = latest_iot_by_hive.get(hive["hive_id"])
+        if latest_iot:
+            hive.update(
+                {
+                    "recorded_at": latest_iot["recorded_at"],
+                    "temperature": latest_iot["temperature"],
+                    "humidity": latest_iot["humidity"],
+                    "co2": latest_iot["co2"],
+                    "weight": latest_iot["weight"],
+                    "sound": latest_iot["sound"],
+                    "bee_count": latest_iot["bee_count"],
+                }
+            )
+    return hives
 
 
 def add_hive(payload: dict[str, Any], beekeeper_id: str) -> dict[str, Any]:
@@ -139,7 +169,23 @@ def add_hive(payload: dict[str, Any], beekeeper_id: str) -> dict[str, Any]:
     response = supabase.table("hives").insert(payload).execute()
     if not response.data:
         raise HTTPException(status_code=400, detail="Hive could not be added")
+    iot_response = supabase.table("hive_iot_data").insert(generate_initial_iot_reading(payload["hive_id"])).execute()
+    if not iot_response.data:
+        raise HTTPException(status_code=502, detail="Hive was created, but its initial IoT data could not be saved")
     return response.data[0]
+
+
+def generate_initial_iot_reading(hive_id: str) -> dict[str, Any]:
+    generator = secrets.SystemRandom()
+    return {
+        "hive_id": hive_id,
+        "temperature": round(generator.uniform(30, 38), 2),
+        "humidity": round(generator.uniform(45, 75), 2),
+        "co2": round(generator.uniform(300, 1500), 2),
+        "weight": round(generator.uniform(10, 35), 2),
+        "sound": round(generator.uniform(20, 80), 2),
+        "bee_count": generator.randint(10000, 50000),
+    }
 
 
 def generate_unique_hive_id() -> str:
