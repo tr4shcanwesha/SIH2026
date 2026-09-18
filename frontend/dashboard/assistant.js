@@ -32,6 +32,7 @@ const initializeAssistant = () => {
   const input = shell.querySelector('#assistant-input');
   const send = shell.querySelector('#assistant-send');
   const status = shell.querySelector('#assistant-status');
+  const clearButton = shell.querySelector('#assistant-clear');
   const suggestions = shell.querySelectorAll('[data-prompt]');
 
   assistantState.history = readHistoryFromSession();
@@ -113,6 +114,15 @@ const initializeAssistant = () => {
   };
 
   renderHistory();
+  clearButton?.addEventListener('click', () => {
+    if (assistantState.busy || !assistantState.history.length) return;
+    if (!window.confirm('Clear this conversation?')) return;
+    assistantState.history = [];
+    window.sessionStorage.removeItem(assistantStorageKey);
+    renderHistory();
+    status.textContent = 'Live workspace context · Ready';
+    input.focus();
+  });
   form.addEventListener('submit', (event) => { event.preventDefault(); submit(input.value); });
   suggestions.forEach((button) => button.addEventListener('click', () => submit(button.dataset.prompt)));
   input.addEventListener('keydown', (event) => {

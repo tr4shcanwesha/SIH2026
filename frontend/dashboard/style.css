@@ -224,9 +224,9 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
 .hive-metric b{display:block; margin-top:6px; color:var(--comb-900); font:600 .82rem var(--font-mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .hive-list-meta{padding-left:14px; border-left:1px solid var(--line);}
 .hive-list-meta b{display:block; margin:2px 0 9px; color:var(--comb-900); font-size:.76rem; white-space:nowrap;}
-.remove-hive-button{width:82px; border:1px solid rgba(181,80,44,.35); border-radius:8px; padding:8px 9px; background:transparent; color:var(--alert-rust); cursor:pointer; font:600 .74rem var(--font-body);}
-.remove-hive-button:hover{background:rgba(181,80,44,.1);}
-.remove-hive-button:disabled{opacity:.6; cursor:wait;}
+.toggle-hive-button{border:1px solid rgba(31,111,92,.35); border-radius:8px; padding:8px 9px; background:transparent; color:var(--verified-teal); cursor:pointer; font:600 .74rem var(--font-body);}
+.toggle-hive-button:hover{background:rgba(31,111,92,.1);}
+.toggle-hive-button:disabled{opacity:.6; cursor:wait;}
 .pill-inactive{background:rgba(91,74,56,.14); color:var(--ink-soft);}
 .hive-empty{padding:24px; text-align:center; color:var(--ink-soft); background:var(--wax-50); border:1px dashed var(--line); border-radius:var(--radius-cell);}
 .hive-card{
@@ -408,6 +408,6 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
   .hive-list-main{grid-column:1 / -1;}
   .hive-metrics{grid-template-columns:repeat(2,1fr);}
   .hive-list-meta{grid-column:1 / -1;}
-  .remove-hive-button{justify-self:start;}
+  .toggle-hive-button{justify-self:start;}
   .hive-actions{flex-wrap:wrap;}
 }

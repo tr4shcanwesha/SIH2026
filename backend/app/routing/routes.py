@@ -6,11 +6,9 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from app.auth.auth import (
-    active_sessions,
-    activate_beekeeper_session,
     create_beekeeper,
-    get_session_beekeeper_id,
-    get_session_email,
+    get_authenticated_beekeeper_id,
+    get_authenticated_email,
     new_beekeeper_id,
     router as auth_router,
     supabase,
@@ -21,8 +19,8 @@ from app.services.batches import (
     create_batch,
     list_batches,
     list_hives as list_hive_records,
-    remove_hive as remove_hive_record,
     update_batch_status_admin,
+    update_hive_status,
 )
 from app.services.blockchain import get_batch_certificate, get_batch_verification
 from app.services.beekeepers import (
@@ -61,6 +59,10 @@ class AdminDecision(BaseModel):
     status: str
 
 
+class HiveStatusUpdate(BaseModel):
+    status: str
+
+
 class AssistantMessage(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     history: list[dict[str, str]] = Field(default_factory=list, max_length=12)
@@ -73,31 +75,28 @@ def health() -> dict[str, str]:
 
 @router.get("/api/profile")
 def profile(request: Request) -> dict[str, Any]:
-    beekeeper_id = get_session_beekeeper_id(request.cookies.get("honeychain_session"))
+    beekeeper_id = get_authenticated_beekeeper_id(request)
     if beekeeper_id:
         profile_data = get_beekeeper_profile(beekeeper_id)
         profile_data["beekeeper"]["profile_exists"] = True
         return profile_data
-    email = get_session_email(request.cookies.get("honeychain_session"))
-    if email:
-        return {
-            "beekeeper": {
-                "email": email,
-                "name": "",
-                "phone": "",
-                "location": "",
-                "kyc_status": "pending",
-                "profile_exists": False,
-            },
-            "stats": {"hives": 0, "harvested": 0, "processed": 0, "distributed": 0},
-        }
-    raise HTTPException(status_code=401, detail="Authentication required")
+    email = get_authenticated_email(request)
+    return {
+        "beekeeper": {
+            "email": email,
+            "name": "",
+            "phone": "",
+            "location": "",
+            "kyc_status": "pending",
+            "profile_exists": False,
+        },
+        "stats": {"hives": 0, "harvested": 0, "processed": 0, "distributed": 0},
+    }
 
 
 @router.patch("/api/profile")
 async def update_profile(request: Request) -> dict[str, Any]:
-    session_id = request.cookies.get("honeychain_session")
-    beekeeper_id = get_session_beekeeper_id(session_id)
+    beekeeper_id = get_authenticated_beekeeper_id(request)
     content_type = request.headers.get("content-type", "")
 
     if "multipart/form-data" in content_type:
@@ -109,9 +108,7 @@ async def update_profile(request: Request) -> dict[str, Any]:
             else:
                 payload[key] = value
         if not beekeeper_id:
-            email = get_session_email(session_id)
-            if not email:
-                raise HTTPException(status_code=401, detail="Authentication required")
+            email = get_authenticated_email(request)
             required_fields = (
                 "name",
                 "phone",
@@ -148,7 +145,6 @@ async def update_profile(request: Request) -> dict[str, Any]:
             profile_fields["certificate_path"] = certificate_path
             profile_fields["beekeeper_id"] = new_id
             beekeeper_id = create_beekeeper(email, profile_fields)
-            activate_beekeeper_session(session_id, beekeeper_id)
             payload.pop("identity_document", None)
             payload.pop("certificate", None)
         updated = await update_beekeeper_profile_with_uploads(beekeeper_id, payload)
@@ -163,14 +159,12 @@ async def update_profile(request: Request) -> dict[str, Any]:
 
 @router.delete("/api/profile", status_code=204)
 def delete_profile(request: Request) -> None:
-    session_id = request.cookies.get("honeychain_session")
     beekeeper_id = current_beekeeper_id(request)
     delete_beekeeper_account(beekeeper_id)
-    active_sessions.pop(session_id, None)
 
 
 def current_beekeeper_id(request: Request) -> str:
-    beekeeper_id = get_session_beekeeper_id(request.cookies.get("honeychain_session"))
+    beekeeper_id = get_authenticated_beekeeper_id(request)
     if not beekeeper_id:
         raise HTTPException(status_code=401, detail="Authentication required")
     return beekeeper_id
@@ -206,6 +200,12 @@ def list_honey_batches(request: Request) -> list[dict[str, Any]]:
     return list_batches(beekeeper_id, str(request.base_url).rstrip("/"))
 
 
+@router.patch("/api/hives/{hive_id}")
+def update_hive(hive_id: str, update: HiveStatusUpdate, request: Request) -> dict[str, Any]:
+    beekeeper_id = current_beekeeper_id(request)
+    return update_hive_status(hive_id, beekeeper_id, update.status)
+
+
 @router.patch("/api/admin/beekeepers/{beekeeper_id}")
 def decide_beekeeper(beekeeper_id: str, decision: AdminDecision, request: Request) -> dict[str, Any]:
     status = decision.status.strip().lower()
@@ -238,12 +238,6 @@ def get_public_certificate(batch_id: str) -> Response:
         media_type="application/pdf",
         headers={"Content-Disposition": f'inline; filename="{batch_id}-honeychain-certificate.pdf"'},
     )
-
-
-@router.delete("/api/hives/{hive_id}", status_code=204)
-def remove_hive(hive_id: str, request: Request) -> None:
-    beekeeper_id = current_beekeeper_id(request)
-    remove_hive_record(hive_id, beekeeper_id)
 
 
 router.include_router(auth_router)

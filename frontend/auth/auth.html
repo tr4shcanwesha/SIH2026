@@ -26,15 +26,7 @@
   <section class="auth-card" aria-labelledby="auth-title">
     <span class="eyebrow-tag"><span class="dot"></span> HoneyChain account</span>
     <h1 id="auth-title">Your hive, one trusted sign-in.</h1>
-    <p class="auth-intro">Use your HoneyChain admin credentials to enter the beekeeper workspace.</p>
-    <form class="credentials-form" action="/api/auth/login" method="post">
-      <label for="username">Username</label>
-      <input id="username" name="username" type="text" autocomplete="username" required>
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" required>
-      <button class="google-button" type="submit">Enter HoneyChain</button>
-    </form>
-    <div class="auth-divider"><span>or</span></div>
+    <p class="auth-intro">Sign in securely with your Google account to enter the beekeeper workspace.</p>
     <button id="google-sign-in" class="google-button google-oauth-button" type="button">Continue with Google</button>
     <p id="google-status" class="auth-status" role="status"></p>
     <p class="auth-note">Only the authorized HoneyChain admin account can enter this workspace.</p>

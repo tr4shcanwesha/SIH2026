@@ -66,6 +66,12 @@ async function exchangeGoogleSession() {
   token.value = session.access_token;
   form.appendChild(token);
 
+  const refreshToken = document.createElement('input');
+  refreshToken.type = 'hidden';
+  refreshToken.name = 'refresh_token';
+  refreshToken.value = session.refresh_token || '';
+  form.appendChild(refreshToken);
+
   document.body.appendChild(form);
   form.submit();
 }

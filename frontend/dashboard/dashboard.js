@@ -217,7 +217,7 @@ const renderHarvestBatches = () => {
       <article class="harvest-reference-row harvest-card">
         <div class="harvest-reference-id">
           <div class="harvest-reference-hex"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
-          <div><strong>${batch.hive_id}</strong><small>Batch ${batch.batch_id} · created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
+          <div><strong>Batch: ${batch.batch_id}</strong><small>Hive: ${batch.hive_id} · created ${new Date(batch.harvest_date).toLocaleDateString()}</small></div>
         </div>
         <div class="batch-verification">
           <div class="batch-qr" data-qr-url="${verificationUrl}" aria-label="Verification QR code"></div>
@@ -251,7 +251,7 @@ const renderHarvestBatches = () => {
         <div class="harvest-card-icon"><img src="/assets/dashboard/hive.png" alt="Hive"></div>
         <div class="harvest-card-body">
           ${batchStatusMarkup(batchStatus)}
-          <h3>${batch.hive_id}</h3>
+          <h3>${batch.batch_id}</h3>
           <small>Location <b>${hive.location || 'Not available'}</b></small>
           <small>Species <b>${hive.bee_species || 'Not available'}</b></small>
           <small>Hive type <b>${hive.hive_type || 'Not available'}</b></small>
@@ -699,7 +699,7 @@ const initializeHivePage = () => {
         <span class="status-pill ${statusClass}">${hive.status}</span>
         <div class="hive-actions">
           <button class="harvest-button" type="button" data-harvest-hive="${hive.hive_id}" data-honey-type="Wild Forest Honey" data-quantity="${hive.weight || 1}">Harvest</button>
-          <button class="remove-hive-button" type="button" data-hive-id="${hive.hive_id}">Remove</button>
+          <button class="toggle-hive-button" type="button" data-hive-id="${hive.hive_id}" data-hive-status="${hive.status}">${hive.status === 'Inactive' ? 'Set healthy' : 'Set inactive'}</button>
         </div>
       </article>`;
     }).join('') : '<p class="hive-empty">No hives match your search.</p>';
@@ -716,18 +716,21 @@ const initializeHivePage = () => {
 
   searchInput.addEventListener('input', renderHives);
   hiveList.addEventListener('click', async (event) => {
-    const removeButton = event.target.closest('.remove-hive-button');
-    if (!removeButton) return;
+    const toggleButton = event.target.closest('.toggle-hive-button');
+    if (!toggleButton) return;
 
-    const hiveId = removeButton.dataset.hiveId;
-    if (!window.confirm(`Remove hive ${hiveId}?`)) return;
-
-    removeButton.disabled = true;
-    removeButton.textContent = 'Removing...';
-    const response = await fetch(`/api/hives/${encodeURIComponent(hiveId)}`, { method: 'DELETE' });
+    const hiveId = toggleButton.dataset.hiveId;
+    const nextStatus = toggleButton.dataset.hiveStatus === 'Inactive' ? 'Healthy' : 'Inactive';
+    toggleButton.disabled = true;
+    toggleButton.textContent = 'Updating...';
+    const response = await fetch(`/api/hives/${encodeURIComponent(hiveId)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: nextStatus }),
+    });
     if (!response.ok) {
-      removeButton.disabled = false;
-      removeButton.textContent = 'Remove';
+      toggleButton.disabled = false;
+      toggleButton.textContent = nextStatus === 'Inactive' ? 'Set inactive' : 'Set healthy';
       return;
     }
     await loadHives();

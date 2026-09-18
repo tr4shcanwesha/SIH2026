@@ -309,7 +309,18 @@ def update_batch_status_admin(batch_id: str, status: str) -> dict[str, Any]:
     return updated_batch
 
 
-def remove_hive(hive_id: str, beekeeper_id: str) -> None:
-    response = supabase.table("hives").delete().eq("hive_id", hive_id).eq("beekeeper_id", beekeeper_id).execute()
+def update_hive_status(hive_id: str, beekeeper_id: str, status: str) -> dict[str, Any]:
+    normalized_status = status.strip().title()
+    if normalized_status not in {"Healthy", "Inactive"}:
+        raise HTTPException(status_code=400, detail="Hive status must be Healthy or Inactive")
+
+    response = (
+        supabase.table("hives")
+        .update({"status": normalized_status})
+        .eq("hive_id", hive_id)
+        .eq("beekeeper_id", beekeeper_id)
+        .execute()
+    )
     if not response.data:
         raise HTTPException(status_code=404, detail="Hive not found")
+    return response.data[0]
