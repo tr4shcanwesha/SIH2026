@@ -249,6 +249,11 @@ Endpoints:
 - `GET /api/public/batches/{batch_id}/certificate` fetches the already-issued
 	certificate without generating a new one.
 - `GET /api/profile` returns the current beekeeper profile and cumulative counts.
+- `GET /api/alerts` derives authenticated hive alerts from the latest IoT
+  readings. Critical rules include temperature above 36°C and an 18% or
+  greater reading-to-reading weight drop. Warning rules include humidity below
+  45%, CO₂ above 2500 ppm, and sound activity at least 32% above the previous
+  reading.
 - `PATCH /api/profile` updates the current beekeeper's name, phone, and location.
 - `DELETE /api/profile` deletes the current beekeeper's relational data while
 	preserving detached blockchain history.

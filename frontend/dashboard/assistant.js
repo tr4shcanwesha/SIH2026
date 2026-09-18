@@ -125,6 +125,13 @@ const initializeAssistant = () => {
   });
   form.addEventListener('submit', (event) => { event.preventDefault(); submit(input.value); });
   suggestions.forEach((button) => button.addEventListener('click', () => submit(button.dataset.prompt)));
+  const alertPrompt = window.sessionStorage.getItem('honeychain-alert-prompt');
+  if (alertPrompt) {
+    window.sessionStorage.removeItem('honeychain-alert-prompt');
+    input.value = alertPrompt;
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+  }
   input.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
