@@ -1,7 +1,7 @@
 import os
 import secrets
 import time
-from typing import Any, Optional
+from typing import Any, Callable, Optional, TypeVar
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Form, Header, HTTPException, Request
@@ -23,6 +23,19 @@ def get_cookie_security() -> bool:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+T = TypeVar("T")
+
+
+def execute_read_with_retry(query: Callable[[], T], attempts: int = 2) -> T:
+    """Retry read-only Supabase calls after a transient connection drop."""
+    for attempt in range(attempts):
+        try:
+            return query()
+        except Exception:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.2)
+    raise RuntimeError("Supabase read failed")
 
 
 def new_beekeeper_id() -> str:

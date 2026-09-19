@@ -11,7 +11,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
 
-from app.auth.auth import supabase
+from app.auth.auth import execute_read_with_retry, supabase
 from app.services.blockchain import append_batch_block
 
 
@@ -171,13 +171,15 @@ def list_hive_iot_data(beekeeper_id: str, limit: int = 8) -> list[dict[str, Any]
     readings: list[dict[str, Any]] = []
     per_hive_limit = max(1, min(limit, 100))
     for hive_id in hive_ids:
-        response = (
-            supabase.table("hive_iot_data")
-            .select("hive_id, recorded_at, temperature, humidity, co2, weight, sound, bee_count")
-            .eq("hive_id", hive_id)
-            .order("recorded_at", desc=True)
-            .limit(per_hive_limit)
-            .execute()
+        response = execute_read_with_retry(
+            lambda: (
+                supabase.table("hive_iot_data")
+                .select("hive_id, recorded_at, temperature, humidity, co2, weight, sound, bee_count")
+                .eq("hive_id", hive_id)
+                .order("recorded_at", desc=True)
+                .limit(per_hive_limit)
+                .execute()
+            )
         )
         readings.extend(response.data or [])
     return sorted(readings, key=lambda reading: reading["recorded_at"], reverse=True)
