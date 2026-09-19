@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import HTTPException, UploadFile
 
-from app.auth.auth import supabase
+from app.auth.auth import execute_read_with_retry, supabase
 
 ALLOWED_UPLOAD_TYPES = {"image/jpeg", "image/png", "application/pdf"}
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
@@ -70,7 +70,9 @@ def get_beekeeper_profile(beekeeper_id: str) -> dict[str, Any]:
     hive_ids = [hive["hive_id"] for hive in (hives_response.data or [])]
     batches = []
     if hive_ids:
-        batches_response = supabase.table("honey_batches").select("status").in_("hive_id", hive_ids).execute()
+        batches_response = execute_read_with_retry(
+            lambda: supabase.table("honey_batches").select("status").in_("hive_id", hive_ids).execute()
+        )
         batches = batches_response.data or []
 
     status_counts = {"HARVESTED": 0, "PROCESSED": 0, "DISTRIBUTED": 0}

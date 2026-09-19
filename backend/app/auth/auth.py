@@ -1,7 +1,7 @@
 import os
 import secrets
 import time
-from typing import Any, Optional
+from typing import Any, Callable, Optional, TypeVar
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Form, Header, HTTPException, Request
@@ -23,6 +23,19 @@ def get_cookie_security() -> bool:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+T = TypeVar("T")
+
+
+def execute_read_with_retry(query: Callable[[], T], attempts: int = 2) -> T:
+    """Retry read-only Supabase calls after a transient connection drop."""
+    for attempt in range(attempts):
+        try:
+            return query()
+        except Exception:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.2)
+    raise RuntimeError("Supabase read failed")
 
 
 def new_beekeeper_id() -> str:
@@ -168,11 +181,12 @@ def google_session(access_token: str = Form(...), refresh_token: str = Form(""))
 
     email = user.user.email or "google-user@honeychain.local"
     beekeeper = find_beekeeper(email)
+    beekeeper_status = get_beekeeper_status(email) if beekeeper else None
     if not beekeeper:
         destination = "/onboarding?edit=1"
-    elif beekeeper.get("kyc_status") == "approved":
+    elif beekeeper_status == "approved":
         destination = "/dashboard"
-    elif beekeeper.get("kyc_status") == "rejected":
+    elif beekeeper_status == "rejected":
         destination = "/onboarding?status=rejected"
     else:
         destination = "/onboarding?status=pending"
