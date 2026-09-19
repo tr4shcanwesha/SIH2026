@@ -195,7 +195,7 @@
         ['Pollen profile', results.pollen_profile],
         ['Quality grade', results.quality_grade],
       ].map(([label, value]) => `<div class="lab-cell"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`).join('');
-      certificateButton.textContent = 'Open PDF certificate';
+      certificateButton.textContent = 'Open HoneyChain certificate';
       certificateStatus.textContent = `Issued ${formatIndiaDateTime(certificate.issued_at)} · ${certificate.certificate_id}`;
     }
     timeline.hidden = true;

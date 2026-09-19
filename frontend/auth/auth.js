@@ -43,9 +43,7 @@ async function startGoogleSignIn() {
 async function exchangeGoogleSession() {
   const query = new URLSearchParams(window.location.search);
   const isOAuthCallback = window.location.hash.includes('access_token') || query.has('code');
-  if (!isOAuthCallback) return;
-
-  document.documentElement.classList.add('oauth-callback-pending');
+  if (isOAuthCallback) document.documentElement.classList.add('oauth-callback-pending');
 
   const configResponse = await fetch('/api/auth/config');
   if (!configResponse.ok) throw new Error('Authentication is unavailable.');
@@ -56,7 +54,12 @@ async function exchangeGoogleSession() {
   const supabaseClient = createSupabaseClient();
   const { data: { session } } = await supabaseClient.auth.getSession();
 
-  if (!session?.access_token) throw new Error('Google did not return a valid session.');
+  if (!session?.access_token) {
+    if (isOAuthCallback) throw new Error('Google did not return a valid session.');
+    return;
+  }
+
+  document.documentElement.classList.add('oauth-callback-pending');
 
   const form = document.createElement('form');
   form.method = 'post';
