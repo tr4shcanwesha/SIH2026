@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi import Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from app.auth.auth import get_authenticated_beekeeper_id, get_authenticated_user, get_beekeeper_status_by_id
+from app.auth.auth import get_authenticated_beekeeper_id, get_beekeeper_status_by_id, get_session_id
 
 router = APIRouter()
 FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"
@@ -45,7 +45,7 @@ def auth_page() -> FileResponse:
 @router.get("/dashboard", include_in_schema=False, response_model=None)
 def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
     try:
-        get_authenticated_user(request)
+        get_session_id(request)
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)
@@ -57,7 +57,7 @@ def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
 @router.get("/onboarding", include_in_schema=False, response_model=None)
 def onboarding_page(request: Request) -> FileResponse | RedirectResponse:
     try:
-        get_authenticated_user(request)
+        get_session_id(request)
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)
@@ -69,7 +69,7 @@ def onboarding_page(request: Request) -> FileResponse | RedirectResponse:
 @router.get("/profile", include_in_schema=False, response_model=None)
 def profile_page(request: Request) -> FileResponse | RedirectResponse:
     try:
-        get_authenticated_user(request)
+        get_session_id(request)
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)
@@ -81,7 +81,7 @@ def profile_page(request: Request) -> FileResponse | RedirectResponse:
 @router.get("/dashboard/{view_name}", include_in_schema=False, response_model=None)
 def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectResponse:
     try:
-        get_authenticated_user(request)
+        get_session_id(request)
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)
@@ -109,7 +109,7 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
 @router.get("/dashboard/batches/{batch_id}", include_in_schema=False, response_model=None)
 def batch_detail_page(request: Request, batch_id: str) -> FileResponse | RedirectResponse:
     try:
-        get_authenticated_user(request)
+        get_session_id(request)
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)

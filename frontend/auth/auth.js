@@ -28,12 +28,21 @@ async function startGoogleSignIn() {
     window.__HONEYCHAIN_SUPABASE_URL = config.supabase_url;
     window.__HONEYCHAIN_SUPABASE_ANON_KEY = config.supabase_anon_key;
     const supabaseClient = createSupabaseClient();
-    const { error } = await supabaseClient.auth.signInWithOAuth({
+    await supabaseClient.auth.signOut({ scope: 'local' });
+    const { data, error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: new URL('/auth', window.location.origin).href }
+      options: {
+        redirectTo: new URL('/auth', window.location.origin).href,
+        queryParams: { prompt: 'select_account' },
+        skipBrowserRedirect: true,
+      }
     });
 
     if (error) throw error;
+    if (!data?.url) throw new Error('Google sign-in could not be started.');
+    const oauthUrl = new URL(data.url);
+    oauthUrl.searchParams.set('prompt', 'select_account');
+    window.location.assign(oauthUrl.href);
   } catch (error) {
     googleStatus.textContent = error.message;
     googleButton.disabled = false;
@@ -43,7 +52,8 @@ async function startGoogleSignIn() {
 async function exchangeGoogleSession() {
   const query = new URLSearchParams(window.location.search);
   const isOAuthCallback = window.location.hash.includes('access_token') || query.has('code');
-  if (isOAuthCallback) document.documentElement.classList.add('oauth-callback-pending');
+  if (!isOAuthCallback) return;
+  document.documentElement.classList.add('oauth-callback-pending');
 
   const configResponse = await fetch('/api/auth/config');
   if (!configResponse.ok) throw new Error('Authentication is unavailable.');
@@ -54,12 +64,7 @@ async function exchangeGoogleSession() {
   const supabaseClient = createSupabaseClient();
   const { data: { session } } = await supabaseClient.auth.getSession();
 
-  if (!session?.access_token) {
-    if (isOAuthCallback) throw new Error('Google did not return a valid session.');
-    return;
-  }
-
-  document.documentElement.classList.add('oauth-callback-pending');
+  if (!session?.access_token) throw new Error('Google did not return a valid session.');
 
   const form = document.createElement('form');
   form.method = 'post';

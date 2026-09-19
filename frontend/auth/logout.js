@@ -1,4 +1,4 @@
-const signOutForms = document.querySelectorAll('.signout-form');
+const signOutForms = document.querySelectorAll('.signout-form, .profile-signout');
 
 signOutForms.forEach((form) => {
   form.addEventListener('submit', async (event) => {

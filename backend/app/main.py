@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.auth.auth import set_refreshed_auth_cookies
 from app.routing.routes import router as api_router
 
 load_dotenv()
@@ -45,13 +44,6 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
-
-
-@app.middleware("http")
-async def refresh_supabase_cookies(request, call_next):
-    response = await call_next(request)
-    set_refreshed_auth_cookies(request, response)
-    return response
 
 
 if __name__ == "__main__":
