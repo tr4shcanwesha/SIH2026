@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.auth.auth import (
     create_beekeeper,
+    activate_beekeeper_session,
     get_authenticated_beekeeper_id,
     get_authenticated_email,
     new_beekeeper_id,
@@ -147,6 +148,7 @@ async def update_profile(request: Request) -> dict[str, Any]:
             profile_fields["certificate_path"] = certificate_path
             profile_fields["beekeeper_id"] = new_id
             beekeeper_id = create_beekeeper(email, profile_fields)
+            activate_beekeeper_session(request, beekeeper_id)
             payload.pop("identity_document", None)
             payload.pop("certificate", None)
         updated = await update_beekeeper_profile_with_uploads(beekeeper_id, payload)
