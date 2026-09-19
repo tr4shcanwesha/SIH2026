@@ -168,11 +168,12 @@ def google_session(access_token: str = Form(...), refresh_token: str = Form(""))
 
     email = user.user.email or "google-user@honeychain.local"
     beekeeper = find_beekeeper(email)
+    beekeeper_status = get_beekeeper_status(email) if beekeeper else None
     if not beekeeper:
         destination = "/onboarding?edit=1"
-    elif beekeeper.get("kyc_status") == "approved":
+    elif beekeeper_status == "approved":
         destination = "/dashboard"
-    elif beekeeper.get("kyc_status") == "rejected":
+    elif beekeeper_status == "rejected":
         destination = "/onboarding?status=rejected"
     else:
         destination = "/onboarding?status=pending"
