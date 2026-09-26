@@ -97,6 +97,21 @@ def profile(request: Request) -> dict[str, Any]:
     }
 
 
+@router.get("/api/dashboard")
+def dashboard_data(request: Request) -> dict[str, Any]:
+    """Return the read-only data used across the dashboard in one HTTP response."""
+    beekeeper_id = current_beekeeper_id(request)
+    profile_data = get_beekeeper_profile(beekeeper_id)
+    base_url = str(request.base_url).rstrip("/")
+    return {
+        "profile": profile_data,
+        "hives": list_hive_records(beekeeper_id),
+        "iot_data": list_hive_iot_data_records(beekeeper_id, 8),
+        "alerts": list_hive_alerts(beekeeper_id),
+        "batches": list_batches(beekeeper_id, base_url),
+    }
+
+
 @router.patch("/api/profile")
 async def update_profile(request: Request) -> dict[str, Any]:
     beekeeper_id = get_authenticated_beekeeper_id(request)
