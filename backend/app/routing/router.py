@@ -51,7 +51,7 @@ def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
     beekeeper_id = get_authenticated_beekeeper_id(request)
     if get_beekeeper_status_by_id(beekeeper_id) != "approved":
         return RedirectResponse(url="/onboarding?status=pending", status_code=303)
-    return HTMLResponse(render_dashboard_shell())
+    return HTMLResponse(render_dashboard_shell(), headers={"Cache-Control": "no-store"})
 
 
 @router.get("/onboarding", include_in_schema=False, response_model=None)
@@ -103,7 +103,7 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
         + "\n"
         + dashboard_html[content_end:]
     )
-    return HTMLResponse(rendered_html)
+    return HTMLResponse(rendered_html, headers={"Cache-Control": "no-store"})
 
 
 @router.get("/dashboard/batches/{batch_id}", include_in_schema=False, response_model=None)
@@ -175,7 +175,10 @@ def assistant_styles() -> FileResponse:
 
 @router.get("/assets/dashboard/dashboard.js", include_in_schema=False)
 def dashboard_script() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "dashboard" / "dashboard.js")
+    return FileResponse(
+        FRONTEND_DIR / "dashboard" / "dashboard.js",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/assets/dashboard/assistant.js", include_in_schema=False)
