@@ -65,18 +65,10 @@ const initializeAlerts = async () => {
   }
 
   try {
-    let response;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        response = await fetch('/api/alerts');
-        if (response.ok || response.status < 500 || attempt === 1) break;
-      } catch (error) {
-        if (attempt === 1) throw error;
-      }
-      await new Promise((resolve) => window.setTimeout(resolve, 250));
-    }
-    if (!response.ok) throw new Error('Unable to load alerts.');
-    const alerts = await response.json();
+    const dashboardResponse = await fetch('/api/dashboard', { cache: 'no-store' });
+    if (!dashboardResponse.ok) throw new Error('Unable to load dashboard data.');
+    const dashboardData = await dashboardResponse.json();
+    const alerts = Array.isArray(dashboardData.alerts) ? dashboardData.alerts : [];
     const critical = alerts.filter((alert) => alert.severity === 'critical').length;
     const warnings = alerts.filter((alert) => alert.severity === 'warning').length;
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -137,6 +129,56 @@ const initializeAlerts = async () => {
   }
 };
 
+const createDashboardSupabaseClient = async () => {
+  if (window.__honeychainDashboardClient) {
+    return window.__honeychainDashboardClient;
+  }
+
+  const configResponse = await fetch('/api/auth/config');
+  if (!configResponse.ok) {
+    throw new Error('Unable to load dashboard realtime config.');
+  }
+
+  const config = await configResponse.json();
+  const client = window.supabase.createClient(config.supabase_url, config.supabase_anon_key);
+  window.__honeychainDashboardClient = client;
+  return client;
+};
+
+const handleDashboardRealtimeRefresh = () => {
+  if (typeof window.__overviewReloadFn === 'function') {
+    window.__overviewReloadFn();
+  }
+  if (document.querySelector('#alerts-list')) {
+    initializeAlerts();
+  }
+};
+
+const bindDashboardRealtime = async () => {
+  if (!window.supabase || window.__honeychainDashboardRealtimeBound) {
+    return;
+  }
+
+  try {
+    const client = await createDashboardSupabaseClient();
+    const channel = client.channel('honeychain-dashboard-overview');
+    ['hives', 'hive_iot_data', 'honey_batches', 'beekeeper'].forEach((tableName) => {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: tableName }, handleDashboardRealtimeRefresh);
+    });
+
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.info('Dashboard realtime subscribed.');
+      }
+    });
+
+    window.__honeychainDashboardRealtimeChannel = channel;
+    window.__honeychainDashboardRealtimeBound = true;
+  } catch (error) {
+    console.error('Dashboard realtime setup failed:', error);
+  }
+};
+
 const initializeOverview = () => {
   const select = document.querySelector('#overview-hive-select');
   const refreshButton = document.querySelector('#overview-refresh');
@@ -151,7 +193,6 @@ const initializeOverview = () => {
   const labels = { temperature: 'Temperature', humidity: 'Humidity', co2: 'CO₂', weight: 'Weight' };
   const units = { temperature: '°C', humidity: '%', co2: ' ppm', weight: ' kg' };
 
-  const latestReading = (hiveId) => hives.find((hive) => hive.hive_id === hiveId) || {};
   const format = (value, unit = '') => value === null || value === undefined ? 'No data' : `${Number(value).toFixed(unit === ' ppm' ? 0 : 1)}${unit}`;
   const isAttention = (hive) => Number(hive.temperature) > 36 || Number(hive.humidity) > 70 || Number(hive.co2) > 3000;
 
@@ -233,16 +274,23 @@ const initializeOverview = () => {
 
   const render = () => { renderSummary(); renderHives(); renderComparison(); renderChanges(); renderChart(); };
   const load = async () => {
-    const [hivesResponse, readingsResponse] = await Promise.all([fetch('/api/hives'), fetch('/api/hive-iot-data?limit=8')]);
-    if (!hivesResponse.ok || !readingsResponse.ok) throw new Error('Unable to load dashboard data.');
-    hives = await hivesResponse.json();
-    readings = await readingsResponse.json();
+    const dashboardResponse = await fetch('/api/dashboard', { cache: 'no-store' });
+    if (!dashboardResponse.ok) throw new Error('Unable to load dashboard data.');
+
+    const payload = await dashboardResponse.json();
+    hives = Array.isArray(payload.hives) ? payload.hives : [];
+    readings = Array.isArray(payload.iot_data) ? payload.iot_data : [];
+
     select.innerHTML = `<option value="all">All hives</option>${hives.map((hive) => `<option value="${hive.hive_id}">${hive.hive_id} · ${hive.location || 'Hive'}</option>`).join('')}`;
     select.value = selectedHive;
     document.querySelector('#dashboard-subtitle').textContent = `${hives.length} registered hive${hives.length === 1 ? '' : 's'} · Last synced ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     render();
   };
-  select.addEventListener('change', (event) => { selectedHive = event.target.value; render(); });
+
+  select.addEventListener('change', (event) => {
+    selectedHive = event.target.value;
+    render();
+  });
   document.querySelector('#overview-tabs').addEventListener('click', (event) => {
     const button = event.target.closest('[data-overview-metric]');
     if (!button) return;
@@ -258,9 +306,15 @@ const initializeOverview = () => {
     render();
   });
   refreshButton.addEventListener('click', () => load().catch((error) => { console.error(error); }));
-  load().catch((error) => { document.querySelector('#dashboard-subtitle').textContent = error.message; });
-  window.clearInterval(window.overviewRefreshTimer);
-  window.overviewRefreshTimer = window.setInterval(() => load().catch(() => {}), 10000);
+
+  window.__overviewReloadFn = () => load().catch((error) => console.error('Overview realtime refresh failed:', error));
+  if (!window.__honeychainDashboardRealtimeBound) {
+    bindDashboardRealtime();
+  }
+
+  window.__overviewReloadFn().catch((error) => {
+    document.querySelector('#dashboard-subtitle').textContent = error.message;
+  });
 };
 
 const renderDynamicTimes = () => {
@@ -859,8 +913,10 @@ const loadDashboardView = async (viewName, updateHistory = false) => {
     loadDashboardProfile().catch(() => {});
     initializeOverview();
     initializeAlerts();
-    initializeHivePage();
-    initializeHarvestPage();
+    if (viewName !== 'overview') {
+      initializeHivePage();
+      initializeHarvestPage();
+    }
     initializeAssistant();
     if (updateHistory) {
       window.history.pushState({ viewName }, '', route);
