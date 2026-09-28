@@ -232,7 +232,7 @@ def google_session(access_token: str = Form(...), refresh_token: str = Form(""))
         httponly=True,
         samesite="lax",
         secure=get_cookie_security(),
-        max_age=60 * 60,
+        max_age=60 * 60 * 24 * 400,
     )
     return response
 

@@ -37,9 +37,30 @@ def landing_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "landing" / "landing.html")
 
 
-@router.get("/auth", include_in_schema=False)
-def auth_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "auth" / "auth.html")
+@router.get("/auth", include_in_schema=False, response_model=None)
+def auth_page(request: Request) -> FileResponse | RedirectResponse:
+    try:
+        get_session_id(request)
+    except HTTPException:
+        return FileResponse(
+            FRONTEND_DIR / "auth" / "auth.html",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    beekeeper_id = get_authenticated_beekeeper_id(request)
+    status = get_beekeeper_status_by_id(beekeeper_id)
+    if status == "approved":
+        return RedirectResponse(
+            url="/dashboard",
+            status_code=303,
+            headers={"Cache-Control": "no-store"},
+        )
+    destination = "/onboarding?status=rejected" if status == "rejected" else "/onboarding?status=pending"
+    return RedirectResponse(
+        url=destination,
+        status_code=303,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/dashboard", include_in_schema=False, response_model=None)
