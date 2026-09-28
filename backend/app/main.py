@@ -1,3 +1,8 @@
+from fastapi import UploadFile, File
+from PIL import Image
+import io
+
+from app.ml_model import predict
 import os
 
 from dotenv import load_dotenv
@@ -42,7 +47,14 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+@app.post("/predict")
+async def predict_image(file: UploadFile = File(...)):
+    image_bytes = await file.read()
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
+    result = predict(image)
+
+    return result
 app.include_router(api_router)
 
 

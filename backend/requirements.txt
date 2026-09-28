@@ -5,4 +5,7 @@ python-dotenv
 python-multipart
 reportlab
 groq
-supabase
+Pillow
+pydantic
+torch
+torchvision
