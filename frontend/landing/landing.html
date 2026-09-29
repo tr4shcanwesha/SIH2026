@@ -95,7 +95,7 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
   height:72px;
 }
 .brand{display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:600; font-size:1.28rem; color:var(--comb-900);}
-.brand-logo{width:30px;height:30px;object-fit:contain;flex:none;display:block;}
+.brand-logo{width:32px;height:32px;object-fit:contain;flex:none;display:block;}
 .nav-links{display:flex; align-items:center; flex:1; margin-left:32px;}
 .nav-primary-links{display:flex; align-items:center; justify-content:center; gap:24px; flex:1;}
 .nav-auth-actions{display:flex; align-items:center; gap:12px; margin-left:24px;}
@@ -402,6 +402,15 @@ footer{border-top:1px solid var(--line); padding:48px 0 30px; background: var(--
   display:block;flex:none;width:100%;min-width:0;padding:12px 18px;
   background:#FBF3E1;font-family:var(--font-mono);font-size:.9rem;
 }
+.login-password-wrap{position:relative;}
+.login-password-wrap .batch-input{padding-right:52px;}
+.login-password-toggle{position:absolute;top:50%;right:8px;display:grid;place-items:center;width:36px;height:36px;padding:0;transform:translateY(-50%);border:0;border-radius:8px;background:transparent;color:var(--ink-soft);cursor:pointer;}
+.login-password-toggle:hover{background:rgba(42,27,15,.07);color:var(--comb-900);}
+.login-password-toggle:focus-visible{outline:2px solid var(--verified-teal);outline-offset:1px;}
+.login-password-toggle svg{display:block;width:19px;height:19px;}
+.login-password-toggle .password-eye-hidden{display:none;}
+.login-password-toggle.is-visible .password-eye-visible{display:none;}
+.login-password-toggle.is-visible .password-eye-hidden{display:block;}
 .login-modal-field .batch-input:focus{outline:3px solid rgba(31,111,92,.18);border-color:var(--verified-teal);}
 .login-modal-submit{width:100%;justify-content:center;padding:12px;margin-top:8px;}
 .login-modal-submit:disabled{cursor:wait;opacity:.65;transform:none;}
@@ -485,7 +494,7 @@ body.login-modal-open{overflow:hidden;}
 
             <!-- Brand Logo -->
             <a href="#" class="brand">
-                <i data-lucide="hexagon" class="brand-logo" style="color: var(--gold-500);"></i>
+                <img src="/src/images/logo.png" alt="" class="brand-logo">
                 <span>Honey Chain</span>
             </a>
 
@@ -582,7 +591,7 @@ body.login-modal-open{overflow:hidden;}
                             <span>Acoustic AI Monitoring</span>
                         </div>
                         <div class="hero-stat">
-                            <b>&lt; 0.01%</b>
+                            <b>0.01%</b>
                             <span>Origin Discrepancy</span>
                         </div>
                     </div>
@@ -1009,7 +1018,7 @@ body.login-modal-open{overflow:hidden;}
 
                 <div class="foot-brand">
                     <a href="#" class="brand" style="margin-bottom:12px;">
-                        <i data-lucide="hexagon" class="brand-logo" style="color: var(--gold-500);"></i>
+                        <img src="/src/images/logo.png" alt="" class="brand-logo">
                         <span>Honey Chain</span>
                     </a>
                     <p>Connecting apiculture with verified supply chain provenance. Protecting bees, supporting beekeepers, and guaranteeing pure raw honey worldwide.</p>
@@ -1066,7 +1075,13 @@ body.login-modal-open{overflow:hidden;}
                 </div>
                 <div class="login-modal-field">
                     <label for="login-password">Password</label>
-                    <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" class="batch-input">
+                    <div class="login-password-wrap">
+                        <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" class="batch-input">
+                        <button id="password-visibility-toggle" class="login-password-toggle" type="button" aria-label="Show password" aria-controls="login-password" aria-pressed="false" title="Show password">
+                            <svg class="password-eye-visible" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg class="password-eye-hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 3 18 18"></path><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"></path><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6 0 9.5 7 9.5 7a16 16 0 0 1-3.1 3.8"></path><path d="M6.2 6.2A16 16 0 0 0 2.5 12s3.5 7 9.5 7a10.8 10.8 0 0 0 3.2-.5"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" id="login-submit" class="btn btn-primary login-modal-submit">Sign In</button>
             </form>
@@ -1366,6 +1381,6 @@ body.login-modal-open{overflow:hidden;}
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/assets/auth/auth.js"></script>
+    <script src="/assets/auth/auth.js?v=2"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@ const googleStatus = document.querySelector('#google-status');
 const loginForm = document.querySelector('#login-form');
 const loginStatus = document.querySelector('#login-status');
 const loginButton = document.querySelector('#login-submit');
+const passwordInput = document.querySelector('#login-password');
 const registerForm = document.querySelector('#register-form');
 const registerStatus = document.querySelector('#register-status');
 const registerButton = document.querySelector('#register-submit');
@@ -141,6 +142,16 @@ async function exchangeGoogleSession() {
 
 googleButton?.addEventListener('click', startGoogleSignIn);
 loginForm?.addEventListener('submit', signInWithPassword);
+document.addEventListener('click', (event) => {
+  const toggle = event.target.closest('#password-visibility-toggle');
+  if (!toggle || !passwordInput) return;
+  const showPassword = passwordInput.type === 'password';
+  passwordInput.type = showPassword ? 'text' : 'password';
+  toggle.classList.toggle('is-visible', showPassword);
+  toggle.setAttribute('aria-pressed', String(showPassword));
+  toggle.setAttribute('aria-label', showPassword ? 'Hide password' : 'Show password');
+  toggle.title = showPassword ? 'Hide password' : 'Show password';
+});
 registerForm?.addEventListener('submit', registerWithEmail);
 exchangeGoogleSession().catch((error) => {
   document.documentElement.classList.remove('oauth-callback-pending');

@@ -62,6 +62,15 @@
   font-family:var(--font-body);
   font-size:.94rem;
 }
+.password-input-wrap{position:relative;}
+.password-input-wrap .batch-input{padding-right:48px;}
+.password-visibility-toggle{position:absolute;top:50%;right:7px;display:grid;place-items:center;width:36px;height:36px;padding:0;transform:translateY(-50%);border:0;border-radius:8px;background:transparent;color:var(--ink-soft);cursor:pointer;}
+.password-visibility-toggle:hover{background:rgba(42,27,15,.07);color:var(--comb-900);}
+.password-visibility-toggle:focus-visible{outline:2px solid var(--verified-teal);outline-offset:1px;}
+.password-visibility-toggle svg{display:block;width:19px;height:19px;}
+.password-visibility-toggle .password-eye-hidden{display:none;}
+.password-visibility-toggle.is-visible .password-eye-visible{display:none;}
+.password-visibility-toggle.is-visible .password-eye-hidden{display:block;}
 .auth-modal-field .batch-input:focus{outline:3px solid rgba(31,111,92,.18);border-color:var(--verified-teal);}
 .auth-modal-submit{width:100%;justify-content:center;padding:12px;margin-top:8px;}
 .auth-modal-submit:disabled{cursor:wait;opacity:.65;transform:none;}
