@@ -36,43 +36,40 @@ export function createBee({
 
   container.appendChild(bee);
 
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let frame = 0;
   let flapFrameRequest;
   let followFrameRequest;
   let lastFrameTime = 0;
   let destroyed = false;
 
-  if (!reducedMotion.matches) {
-    const preloadedFrames = beeFrames.map((src) => {
-      const image = new Image();
-      image.src = src;
-      return image.decode();
-    });
+  const preloadedFrames = beeFrames.map((src) => {
+    const image = new Image();
+    image.src = src;
+    return image.decode();
+  });
 
-    Promise.all(preloadedFrames)
-      .then(() => {
-        const flap = (timestamp) => {
-          if (destroyed) return;
-          if (timestamp - lastFrameTime >= 60) {
-            frame = (frame + 1) % beeFrames.length;
-            bee.src = beeFrames[frame];
-            lastFrameTime = timestamp;
-          }
-          flapFrameRequest = window.requestAnimationFrame(flap);
-        };
-
+  Promise.all(preloadedFrames)
+    .then(() => {
+      const flap = (timestamp) => {
+        if (destroyed) return;
+        if (timestamp - lastFrameTime >= 60) {
+          frame = (frame + 1) % beeFrames.length;
+          bee.src = beeFrames[frame];
+          lastFrameTime = timestamp;
+        }
         flapFrameRequest = window.requestAnimationFrame(flap);
-      })
-      .catch((error) => {
-        console.error("Failed to load bee animation frames.", error);
-      });
-  }
+      };
+
+      flapFrameRequest = window.requestAnimationFrame(flap);
+    })
+    .catch((error) => {
+      console.error("Failed to load bee animation frames.", error);
+    });
 
   let animation = null;
   let stopFollowing = () => {};
 
-  if (!reducedMotion.matches && movement === "follow") {
+  if (movement === "follow") {
     const bounds = container.getBoundingClientRect();
     let x = bee.offsetLeft;
     let y = bee.offsetTop;
@@ -115,7 +112,7 @@ export function createBee({
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerleave", onPointerLeave);
     };
-  } else if (!reducedMotion.matches) {
+  } else {
     const keyframes = movement === "float"
       ? [
         { transform: "translateY(-12px) rotate(-3deg)" },

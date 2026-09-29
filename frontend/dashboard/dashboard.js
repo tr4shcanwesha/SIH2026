@@ -249,7 +249,7 @@ const initializeOverview = () => {
       const hiveStatusClass = String(hive.status || '').toLowerCase() === 'healthy' ? 'ok' : 'warn';
       const hiveId = escapeHtml(hive.hive_id);
       return `
-      <article class="overview-hive ${selectedHive === hive.hive_id ? 'selected' : ''}">
+      <article class="overview-hive ${selectedHive === hive.hive_id ? 'selected' : ''}" data-overview-hive-card="${hiveId}">
         <div class="overview-hive-row"><button class="overview-hive-select" type="button" data-overview-hive="${hiveId}"><strong>${hiveId}</strong><span>${escapeHtml(hive.location || 'Location unavailable')} · ${escapeHtml(hive.bee_species || 'Species unavailable')}</span></button>
         <div class="overview-hive-actions"><span class="overview-pill ${hiveStatusClass}">Hive status: ${escapeHtml(hiveStatus)}</span><span class="bee-status-pill ${beeStatus}">Bee status: ${displayStatus(beeStatus)}</span><button class="bee-refresh-button" type="button" data-refresh-bee="${hiveId}" title="Refresh bee assessment" aria-label="Refresh bee assessment for ${hiveId}">&#8635;</button></div></div>
         <div class="overview-mini"><div><b>${format(hive.temperature, '°C')}</b><span>Temp.</span></div><div><b>${format(hive.humidity, '%')}</b><span>Humidity</span></div><div><b>${format(hive.weight, ' kg')}</b><span>Weight</span></div></div>
@@ -290,11 +290,24 @@ const initializeOverview = () => {
   const renderChart = () => {
     const ids = selectedHive === 'all' ? hives.map((hive) => hive.hive_id) : [selectedHive];
     const seriesByHive = ids.map((id) => readings.filter((reading) => reading.hive_id === id).slice(0, 8).reverse());
-    const length = Math.max(...seriesByHive.map((series) => series.length), 0);
-    const series = Array.from({ length }, (_, index) => {
-      const values = seriesByHive.map((items) => Number(items[index]?.[metric])).filter(Number.isFinite);
-      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
-    }).filter((value) => value !== null);
+    let series;
+    if (selectedHive === 'all') {
+      const length = Math.max(...seriesByHive.map((hiveSeries) => hiveSeries.length), 0);
+      series = Array.from({ length }, (_, index) => {
+        const values = seriesByHive
+          .map((hiveSeries) => hiveSeries[index]?.[metric])
+          .filter((value) => value !== null && value !== undefined && value !== '')
+          .map(Number)
+          .filter(Number.isFinite);
+        return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+      }).filter((value) => value !== null);
+    } else {
+      series = (seriesByHive[0] || [])
+        .map((reading) => reading[metric])
+        .filter((value) => value !== null && value !== undefined && value !== '')
+        .map(Number)
+        .filter(Number.isFinite);
+    }
     if (!series.length) {
       chart.innerHTML = '<text class="overview-chart-empty" x="400" y="130" text-anchor="middle">No historical readings available.</text>';
       return;
@@ -313,7 +326,9 @@ const initializeOverview = () => {
     markup += `<path class="overview-area" d="${area}"/><path class="overview-line" d="${path}"/><circle class="overview-dot" cx="${points[points.length - 1][0]}" cy="${points[points.length - 1][1]}" r="5"/>`;
     chart.innerHTML = markup;
     document.querySelector('#overview-legend-text').textContent = labels[metric];
-    document.querySelector('#overview-range-text').textContent = `${series.length} recent readings`;
+    document.querySelector('#overview-range-text').textContent = selectedHive === 'all'
+      ? `${series.length} averaged readings`
+      : `${series.length} readings · ${selectedHive}`;
     document.querySelector('#overview-trend-title').textContent = `${selectedHive === 'all' ? 'Apiary' : selectedHive} trends`;
   };
 
@@ -349,9 +364,9 @@ const initializeOverview = () => {
       refreshBeeStatus(refreshButton.dataset.refreshBee, refreshButton);
       return;
     }
-    const button = event.target.closest('[data-overview-hive]');
-    if (!button) return;
-    selectedHive = button.dataset.overviewHive;
+    const hiveCard = event.target.closest('[data-overview-hive-card]');
+    if (!hiveCard) return;
+    selectedHive = hiveCard.dataset.overviewHiveCard;
     select.value = selectedHive;
     render();
   });
