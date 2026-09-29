@@ -1,0 +1,8 @@
+.bee {
+  display: block;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+  position: absolute;
+  z-index: 10;
+}
