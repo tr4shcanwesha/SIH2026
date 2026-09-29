@@ -120,11 +120,9 @@ def get_batch_verification(batch_id: str) -> dict[str, Any]:
         legacy_batch_data_hash(batch, hive),
     }
     chain_verified = True
-    previous_hash = None
-    for block in blocks:
-        if block["previous_hash"] != previous_hash:
+    for previous_block, block in zip(blocks, blocks[1:]):
+        if block["previous_hash"] != previous_block["block_hash"]:
             chain_verified = False
-        previous_hash = block["block_hash"]
 
     verification = {
         "data_verified": data_verified,
