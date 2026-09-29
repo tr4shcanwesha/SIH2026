@@ -1,7 +1,7 @@
 import random
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -10,6 +10,8 @@ from app.auth.auth import (
     activate_beekeeper_session,
     get_authenticated_beekeeper_id,
     get_authenticated_email,
+    get_beekeeper_status_by_id,
+    require_admin,
     new_beekeeper_id,
     router as auth_router,
     supabase,
@@ -34,6 +36,7 @@ from app.services.beekeepers import (
     update_beekeeper_profile_with_uploads,
 )
 from app.services.assistant import answer_question
+from app.services.bee_health import get_hive_image, refresh_hive_bee_status, upload_hive_image
 
 router = APIRouter()
 
@@ -118,6 +121,8 @@ async def update_profile(request: Request) -> dict[str, Any]:
     content_type = request.headers.get("content-type", "")
 
     if "multipart/form-data" in content_type:
+        if beekeeper_id and get_beekeeper_status_by_id(beekeeper_id) == "approved":
+            raise HTTPException(status_code=403, detail="Approved beekeeper profiles cannot be resubmitted.")
         form_data = await request.form()
         payload: dict[str, Any] = {}
         for key, value in form_data.items():
@@ -186,6 +191,8 @@ def current_beekeeper_id(request: Request) -> str:
     beekeeper_id = get_authenticated_beekeeper_id(request)
     if not beekeeper_id:
         raise HTTPException(status_code=401, detail="Authentication required")
+    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
+        raise HTTPException(status_code=403, detail="Beekeeper approval is required.")
     return beekeeper_id
 
 
@@ -199,6 +206,22 @@ def assistant_chat(payload: AssistantMessage, request: Request) -> dict[str, str
 def list_hives(request: Request) -> list[dict[str, Any]]:
     beekeeper_id = current_beekeeper_id(request)
     return list_hive_records(beekeeper_id)
+
+
+@router.get("/api/hives/{hive_id}/image")
+def hive_image(hive_id: str, request: Request) -> Response:
+    image_bytes, content_type = get_hive_image(hive_id, current_beekeeper_id(request))
+    return Response(content=image_bytes, media_type=content_type, headers={"Cache-Control": "private, no-store"})
+
+
+@router.post("/api/hives/{hive_id}/bee-image")
+async def upload_bee_image(hive_id: str, request: Request, image: UploadFile = File(...)) -> dict[str, Any]:
+    return await upload_hive_image(hive_id, current_beekeeper_id(request), image)
+
+
+@router.post("/api/hives/{hive_id}/refresh-bee-status")
+def refresh_bee_status(hive_id: str, request: Request) -> dict[str, Any]:
+    return refresh_hive_bee_status(hive_id, current_beekeeper_id(request))
 
 
 @router.get("/api/hive-iot-data")
@@ -237,17 +260,20 @@ def update_hive(hive_id: str, update: HiveStatusUpdate, request: Request) -> dic
 
 @router.patch("/api/admin/beekeepers/{beekeeper_id}")
 def decide_beekeeper(beekeeper_id: str, decision: AdminDecision, request: Request) -> dict[str, Any]:
+    require_admin(request)
     status = decision.status.strip().lower()
     if status not in {"approved", "rejected"}:
         raise HTTPException(status_code=400, detail="Decision must be approved or rejected")
     response = supabase.table("beekeeper").update({"kyc_status": status}).eq("beekeeper_id", beekeeper_id).execute()
     if not response.data:
         raise HTTPException(status_code=404, detail="Beekeeper not found")
+    response.data[0].pop("password", None)
     return response.data[0]
 
 
 @router.patch("/api/admin/batches/{batch_id}")
 def advance_batch_as_admin(batch_id: str, decision: AdminDecision, request: Request) -> dict[str, Any]:
+    require_admin(request)
     status = decision.status.strip().upper()
     if status not in {"PROCESSED", "DISTRIBUTED"}:
         raise HTTPException(status_code=400, detail="Batch status must be PROCESSED or DISTRIBUTED")

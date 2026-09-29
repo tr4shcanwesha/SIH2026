@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi import Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from app.auth.auth import get_authenticated_beekeeper_id, get_beekeeper_status_by_id, get_session_id
+from app.auth.auth import admin_sessions, get_authenticated_beekeeper_id, get_beekeeper_status_by_id, get_session_id
 
 router = APIRouter()
 FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"
@@ -37,9 +37,37 @@ def landing_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "landing" / "landing.html")
 
 
-@router.get("/auth", include_in_schema=False)
-def auth_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "auth" / "auth.html")
+@router.get("/auth", include_in_schema=False, response_model=None)
+def auth_page(request: Request) -> FileResponse | RedirectResponse:
+    try:
+        get_session_id(request)
+    except HTTPException:
+        return FileResponse(
+            FRONTEND_DIR / "auth" / "auth.html",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    if get_session_id(request) in admin_sessions:
+        return RedirectResponse(url="/", status_code=303, headers={"Cache-Control": "no-store"})
+    beekeeper_id = get_authenticated_beekeeper_id(request)
+    status = get_beekeeper_status_by_id(beekeeper_id)
+    if status == "approved":
+        return RedirectResponse(
+            url="/dashboard",
+            status_code=303,
+            headers={"Cache-Control": "no-store"},
+        )
+    destination = f"/auth?status={status}"
+    if request.query_params.get("status") == status:
+        return FileResponse(
+            FRONTEND_DIR / "auth" / "auth.html",
+            headers={"Cache-Control": "no-store"},
+        )
+    return RedirectResponse(
+        url=destination,
+        status_code=303,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @router.get("/dashboard", include_in_schema=False, response_model=None)
@@ -49,8 +77,9 @@ def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)
-    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
-        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
+    status = get_beekeeper_status_by_id(beekeeper_id)
+    if status != "approved":
+        return RedirectResponse(url=f"/onboarding?status={status}", status_code=303)
     return HTMLResponse(render_dashboard_shell(), headers={"Cache-Control": "no-store"})
 
 
@@ -59,7 +88,7 @@ def onboarding_page(request: Request) -> FileResponse | RedirectResponse:
     try:
         get_session_id(request)
     except HTTPException:
-        return RedirectResponse(url="/auth", status_code=303)
+        return FileResponse(FRONTEND_DIR / "auth" / "onboarding.html", headers={"Cache-Control": "no-store"})
     beekeeper_id = get_authenticated_beekeeper_id(request)
     if get_beekeeper_status_by_id(beekeeper_id) == "approved":
         return RedirectResponse(url="/dashboard", status_code=303)
@@ -85,8 +114,9 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)
-    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
-        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
+    status = get_beekeeper_status_by_id(beekeeper_id)
+    if status != "approved":
+        return RedirectResponse(url=f"/onboarding?status={status}", status_code=303)
     try:
         filename = DASHBOARD_VIEWS[view_name]
     except KeyError as error:
@@ -231,6 +261,24 @@ def serve_frontend_image(filename: str) -> FileResponse:
     image_path = FRONTEND_DIR / "src" / "images" / filename
     if not image_path.exists():
         raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(image_path)
+
+
+@router.get("/src/bee/bee.js", include_in_schema=False)
+def serve_bee_module() -> FileResponse:
+    return FileResponse(
+        FRONTEND_DIR / "src" / "components" / "bee.js",
+        media_type="text/javascript",
+    )
+
+
+@router.get("/src/assets/bee/{filename}", include_in_schema=False)
+def serve_bee_animation_frame(filename: str) -> FileResponse:
+    if filename not in {f"cbee-{frame}.png" for frame in range(1, 5)}:
+        raise HTTPException(status_code=404, detail="Bee animation frame not found")
+    image_path = FRONTEND_DIR / "src" / "assets" / "bee" / filename
+    if not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Bee animation frame not found")
     return FileResponse(image_path)
 
 

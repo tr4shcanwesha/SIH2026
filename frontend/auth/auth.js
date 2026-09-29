@@ -1,5 +1,32 @@
 const googleButton = document.querySelector('#google-sign-in');
 const googleStatus = document.querySelector('#google-status');
+const loginForm = document.querySelector('#login-form');
+const loginStatus = document.querySelector('#login-status');
+const loginButton = document.querySelector('#login-submit');
+const passwordInput = document.querySelector('#login-password');
+const registerForm = document.querySelector('#register-form');
+const registerStatus = document.querySelector('#register-status');
+const registerButton = document.querySelector('#register-submit');
+const applicationStatus = document.querySelector('#application-status');
+const applicationStatusMessage = document.querySelector('#application-status-message');
+const applicationResubmit = document.querySelector('#application-resubmit');
+
+function showApplicationStatus() {
+  const status = new URLSearchParams(window.location.search).get('status');
+  if (!applicationStatus || !applicationStatusMessage) return;
+
+  if (status === 'rejected') {
+    applicationStatus.classList.add('rejected');
+    applicationStatusMessage.textContent =
+      'Your previous application was rejected. Please review your details and resubmit it for approval.';
+    if (applicationResubmit) applicationResubmit.hidden = false;
+    applicationStatus.hidden = false;
+  } else if (status === 'pending') {
+    applicationStatusMessage.textContent =
+      'Your application has been submitted and is pending review.';
+    applicationStatus.hidden = false;
+  }
+}
 
 function createSupabaseClient() {
   return window.supabase.createClient(
@@ -49,6 +76,53 @@ async function startGoogleSignIn() {
   }
 }
 
+async function signInWithPassword(event) {
+  event.preventDefault();
+  loginButton.disabled = true;
+  loginStatus.textContent = '';
+
+  try {
+    const formData = new FormData(loginForm);
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: formData.get('email'),
+        password: formData.get('password'),
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.detail || 'Sign in failed. Please try again.');
+    }
+    window.location.assign(result.redirect);
+  } catch (error) {
+    loginStatus.textContent = error.message;
+    loginButton.disabled = false;
+  }
+}
+
+async function registerWithEmail(event) {
+  event.preventDefault();
+  registerButton.disabled = true;
+  registerStatus.textContent = '';
+
+  try {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      body: new FormData(registerForm),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.detail || 'Registration failed. Please try again.');
+    }
+    window.location.assign(result.redirect);
+  } catch (error) {
+    registerStatus.textContent = error.message || 'Registration failed. Please try again.';
+    registerButton.disabled = false;
+  }
+}
+
 async function exchangeGoogleSession() {
   const query = new URLSearchParams(window.location.search);
   const isOAuthCallback = window.location.hash.includes('access_token') || query.has('code');
@@ -86,7 +160,20 @@ async function exchangeGoogleSession() {
   form.submit();
 }
 
-googleButton.addEventListener('click', startGoogleSignIn);
+googleButton?.addEventListener('click', startGoogleSignIn);
+loginForm?.addEventListener('submit', signInWithPassword);
+document.addEventListener('click', (event) => {
+  const toggle = event.target.closest('#password-visibility-toggle');
+  if (!toggle || !passwordInput) return;
+  const showPassword = passwordInput.type === 'password';
+  passwordInput.type = showPassword ? 'text' : 'password';
+  toggle.classList.toggle('is-visible', showPassword);
+  toggle.setAttribute('aria-pressed', String(showPassword));
+  toggle.setAttribute('aria-label', showPassword ? 'Hide password' : 'Show password');
+  toggle.title = showPassword ? 'Hide password' : 'Show password';
+});
+registerForm?.addEventListener('submit', registerWithEmail);
+showApplicationStatus();
 exchangeGoogleSession().catch((error) => {
   document.documentElement.classList.remove('oauth-callback-pending');
   googleStatus.textContent = error.message;

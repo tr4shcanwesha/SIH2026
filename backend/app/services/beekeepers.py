@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import HTTPException, UploadFile
 
@@ -66,6 +66,7 @@ def get_beekeeper_profile(beekeeper_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Beekeeper not found")
 
     beekeeper = beekeeper_response.data[0]
+    beekeeper.pop("password", None)
     hives_response = supabase.table("hives").select("hive_id").eq("beekeeper_id", beekeeper_id).execute()
     hive_ids = [hive["hive_id"] for hive in (hives_response.data or [])]
     batches = []
@@ -96,7 +97,12 @@ def get_beekeeper_profile(beekeeper_id: str) -> dict[str, Any]:
     }
 
 
-def update_beekeeper_profile(beekeeper_id: str, payload: dict[str, str]) -> dict[str, Any]:
+def update_beekeeper_profile(
+    beekeeper_id: str,
+    payload: dict[str, str],
+    *,
+    kyc_status: Optional[str] = None,
+) -> dict[str, Any]:
     clean_payload = {
         key: value if value not in (None, "") else None
         for key, value in payload.items()
@@ -104,7 +110,6 @@ def update_beekeeper_profile(beekeeper_id: str, payload: dict[str, str]) -> dict
             "name",
             "phone",
             "location",
-            "kyc_status",
             "identity_document_type",
             "identity_document_path",
             "address_document_type",
@@ -113,8 +118,10 @@ def update_beekeeper_profile(beekeeper_id: str, payload: dict[str, str]) -> dict
             "certificate_path",
         }
     }
-    if "kyc_status" not in clean_payload:
-        clean_payload["kyc_status"] = "pending"
+    if kyc_status is not None:
+        clean_payload["kyc_status"] = kyc_status
+    if not clean_payload:
+        raise HTTPException(status_code=400, detail="No profile data received")
     response = (
         supabase.table("beekeeper")
         .update(clean_payload)
@@ -128,7 +135,7 @@ def update_beekeeper_profile(beekeeper_id: str, payload: dict[str, str]) -> dict
 
 async def update_beekeeper_profile_with_uploads(beekeeper_id: str, form_data: dict[str, Any]) -> dict[str, Any]:
     payload: dict[str, str] = {}
-    for field in ["name", "phone", "location", "kyc_status"]:
+    for field in ["name", "phone", "location"]:
         if field in form_data and form_data[field] not in (None, ""):
             payload[field] = str(form_data[field])
 
@@ -154,7 +161,7 @@ async def update_beekeeper_profile_with_uploads(beekeeper_id: str, form_data: di
 
     if not payload:
         raise HTTPException(status_code=400, detail="No profile data received")
-    return update_beekeeper_profile(beekeeper_id, payload)
+    return update_beekeeper_profile(beekeeper_id, payload, kyc_status="pending")
 
 
 def delete_beekeeper_account(beekeeper_id: str) -> None:
