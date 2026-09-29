@@ -30,6 +30,43 @@ def _get_owned_hive(hive_id: str, beekeeper_id: str) -> dict[str, Any]:
     return response.data[0]
 
 
+def _save_bee_status(hive_id: str, beekeeper_id: str, bee_status: str) -> dict[str, Any]:
+    response = (
+        supabase.table("hives")
+        .update({"bee_status": bee_status})
+        .eq("hive_id", hive_id)
+        .eq("beekeeper_id", beekeeper_id)
+        .execute()
+    )
+    if not response.data:
+        raise HTTPException(status_code=502, detail="Bee status could not be saved")
+    return response.data[0]
+
+
+def _is_missing_storage_object(error: Exception) -> bool:
+    status_code = getattr(error, "status_code", getattr(error, "statusCode", None))
+    message = str(error).lower()
+    return str(status_code) == "404" or "404" in message or "not found" in message or "not_found" in message
+
+
+def _predict_bee_status(image_bytes: bytes) -> str:
+    try:
+        with Image.open(BytesIO(image_bytes)) as image:
+            prediction = predict(image.convert("RGB"))
+    except ModelUnavailableError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except (UnidentifiedImageError, OSError) as error:
+        raise HTTPException(status_code=422, detail="The bee image cannot be read") from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail="Bee image assessment failed") from error
+
+    normalized_status = str(prediction.get("bee_status", prediction.get("prediction", ""))).strip().lower()
+    bee_status = {"healthy": "Healthy", "infected": "Infected"}.get(normalized_status)
+    if bee_status is None:
+        raise HTTPException(status_code=500, detail="The model returned an unsupported bee status")
+    return bee_status
+
+
 def get_hive_image(hive_id: str, beekeeper_id: str) -> tuple[bytes, str]:
     hive = _get_owned_hive(hive_id, beekeeper_id)
     image_path = hive.get("image_path")
@@ -77,9 +114,18 @@ async def upload_hive_image(hive_id: str, beekeeper_id: str, upload: UploadFile)
         raise HTTPException(status_code=502, detail="Bee image upload failed") from error
 
     try:
+        bee_status = _predict_bee_status(image_bytes)
+    except HTTPException:
+        try:
+            supabase.storage.from_(BUCKET).remove([image_path])
+        except Exception:
+            pass
+        raise
+
+    try:
         response = (
             supabase.table("hives")
-            .update({"image_path": image_path})
+            .update({"image_path": image_path, "bee_status": bee_status})
             .eq("hive_id", hive_id)
             .eq("beekeeper_id", beekeeper_id)
             .execute()
@@ -104,37 +150,16 @@ async def upload_hive_image(hive_id: str, beekeeper_id: str, upload: UploadFile)
 
 def refresh_hive_bee_status(hive_id: str, beekeeper_id: str) -> dict[str, Any]:
     hive = _get_owned_hive(hive_id, beekeeper_id)
-    image_path = hive.get("image_path")
+    image_path = str(hive.get("image_path") or "").strip()
     if not image_path:
-        return hive
+        return _save_bee_status(hive_id, beekeeper_id, "N/A")
 
     try:
         image_bytes = supabase.storage.from_(BUCKET).download(image_path)
     except Exception as error:
+        if _is_missing_storage_object(error):
+            return _save_bee_status(hive_id, beekeeper_id, "N/A")
         raise HTTPException(status_code=502, detail="Bee image could not be retrieved from storage") from error
 
-    try:
-        with Image.open(BytesIO(image_bytes)) as image:
-            prediction = predict(image.convert("RGB"))
-    except ModelUnavailableError as error:
-        raise HTTPException(status_code=503, detail=str(error)) from error
-    except (UnidentifiedImageError, OSError) as error:
-        raise HTTPException(status_code=422, detail="The stored bee image cannot be read") from error
-    except Exception as error:
-        raise HTTPException(status_code=500, detail="Bee image assessment failed") from error
-
-    normalized_status = str(prediction.get("bee_status", prediction.get("prediction", ""))).strip().lower()
-    bee_status = {"healthy": "Healthy", "infected": "Infected"}.get(normalized_status)
-    if bee_status is None:
-        raise HTTPException(status_code=500, detail="The model returned an unsupported bee status")
-
-    response = (
-        supabase.table("hives")
-        .update({"bee_status": bee_status})
-        .eq("hive_id", hive_id)
-        .eq("beekeeper_id", beekeeper_id)
-        .execute()
-    )
-    if not response.data:
-        raise HTTPException(status_code=502, detail="Bee status could not be saved")
-    return response.data[0]
+    bee_status = _predict_bee_status(image_bytes)
+    return _save_bee_status(hive_id, beekeeper_id, bee_status)

@@ -21,6 +21,13 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character
 const displayStatus = (value, fallback = 'Unknown') => String(value || fallback)
   .toLowerCase()
   .replace(/\b\w/g, (character) => character.toUpperCase());
+const getBeeStatusClass = (hive) => {
+  if (!String(hive.image_path || '').trim() || String(hive.bee_status || '').trim().toLowerCase() === 'n/a') {
+    return 'na';
+  }
+  const status = String(hive.bee_status || '').toLowerCase();
+  return ['healthy', 'infected', 'pending'].includes(status) ? status : 'pending';
+};
 
 const refreshBeeStatus = async (hiveId, button) => {
   button.disabled = true;
@@ -242,16 +249,14 @@ const initializeOverview = () => {
 
   const renderHives = () => {
     hiveList.innerHTML = hives.length ? hives.map((hive) => {
-      const beeStatus = ['healthy', 'infected', 'pending'].includes(String(hive.bee_status || '').toLowerCase())
-        ? String(hive.bee_status || 'healthy').toLowerCase()
-        : 'pending';
+      const beeStatus = getBeeStatusClass(hive);
       const hiveStatus = displayStatus(hive.status);
       const hiveStatusClass = String(hive.status || '').toLowerCase() === 'healthy' ? 'ok' : 'warn';
       const hiveId = escapeHtml(hive.hive_id);
       return `
       <article class="overview-hive ${selectedHive === hive.hive_id ? 'selected' : ''}" data-overview-hive-card="${hiveId}">
         <div class="overview-hive-row"><button class="overview-hive-select" type="button" data-overview-hive="${hiveId}"><strong>${hiveId}</strong><span>${escapeHtml(hive.location || 'Location unavailable')} · ${escapeHtml(hive.bee_species || 'Species unavailable')}</span></button>
-        <div class="overview-hive-actions"><span class="overview-pill ${hiveStatusClass}">Hive status: ${escapeHtml(hiveStatus)}</span><span class="bee-status-pill ${beeStatus}">Bee status: ${displayStatus(beeStatus)}</span><button class="bee-refresh-button" type="button" data-refresh-bee="${hiveId}" title="Refresh bee assessment" aria-label="Refresh bee assessment for ${hiveId}">&#8635;</button></div></div>
+        <div class="overview-hive-actions"><span class="overview-pill ${hiveStatusClass}">Hive status: ${escapeHtml(hiveStatus)}</span><span class="bee-status-pill ${beeStatus}">Bee status: ${beeStatus === 'na' ? 'N/A' : displayStatus(beeStatus)}</span><button class="bee-refresh-button" type="button" data-refresh-bee="${hiveId}" title="Refresh bee assessment" aria-label="Refresh bee assessment for ${hiveId}">&#8635;</button></div></div>
         <div class="overview-mini"><div><b>${format(hive.temperature, '°C')}</b><span>Temp.</span></div><div><b>${format(hive.humidity, '%')}</b><span>Humidity</span></div><div><b>${format(hive.weight, ' kg')}</b><span>Weight</span></div></div>
       </article>`;
     }).join('') : '<p class="overview-empty">No hive data available.</p>';
@@ -272,7 +277,7 @@ const initializeOverview = () => {
       if (hive.image_path) {
         const status = String(hive.bee_status || 'pending').toLowerCase();
         const detail = status === 'pending'
-          ? 'Image uploaded; refresh the assessment to get a prediction.'
+          ? 'Image uploaded; assessment is running.'
           : `Latest image assessment: ${displayStatus(status)}.`;
         events.push([status === 'infected' ? '!' : '●', `${hive.hive_id} · Bee status: ${displayStatus(status)}`, detail]);
       }
@@ -373,10 +378,6 @@ const initializeOverview = () => {
   refreshButton.addEventListener('click', () => load().catch((error) => { console.error(error); }));
 
   window.__overviewReloadFn = () => load().catch((error) => console.error('Overview realtime refresh failed:', error));
-  if (!window.__honeychainDashboardRealtimeBound) {
-    bindDashboardRealtime();
-  }
-
   window.__overviewReloadFn().catch((error) => {
     document.querySelector('#dashboard-subtitle').textContent = error.message;
   });
@@ -1029,6 +1030,8 @@ const initializeHivePage = () => {
     return;
   }
   let hives = [];
+  let hasLoadedHives = false;
+  let lastProcessedImagePath = null;
 
   const renderHivesLoading = () => {
     hiveList.innerHTML = `
@@ -1047,11 +1050,12 @@ const initializeHivePage = () => {
     );
     hiveList.innerHTML = visibleHives.length ? visibleHives.map((hive) => {
       const statusClass = hive.status === 'Healthy' ? 'pill-good' : hive.status === 'Inactive' ? 'pill-inactive' : 'pill-warn';
-      const beeStatus = ['healthy', 'infected', 'pending'].includes(String(hive.bee_status || '').toLowerCase())
-        ? String(hive.bee_status || 'healthy').toLowerCase()
-        : 'pending';
+      const beeStatus = getBeeStatusClass(hive);
       const hiveId = escapeHtml(hive.hive_id);
-      const imageSrc = hive.image_path ? `/api/hives/${encodeURIComponent(hive.hive_id)}/image` : '/assets/dashboard/hive.png';
+      const hasImage = Boolean(String(hive.image_path || '').trim());
+      const imageSrc = hasImage
+        ? `/api/hives/${encodeURIComponent(hive.hive_id)}/image?v=${encodeURIComponent(hive.image_path)}`
+        : '/assets/dashboard/hive.png';
       const metric = (label, value, unit = '') => {
         const displayValue = value === null || value === undefined || value === '' ? 'No data' : `${value}${unit}`;
         return `<div class="hive-metric"><span>${label}</span><b>${displayValue}</b></div>`;
@@ -1059,7 +1063,7 @@ const initializeHivePage = () => {
       return `
       <article class="hive-list-item">
         <div class="hive-list-main">
-          <div class="hive-mark"><img src="${imageSrc}" alt="${hive.image_path ? 'Uploaded bee image' : 'Hive'}"></div>
+          <div class="hive-mark"><img src="${imageSrc}" alt="${hasImage ? 'Uploaded bee image' : 'Hive'}"></div>
           <div><h3>${hiveId}</h3><span class="hive-location">At ${escapeHtml(hive.location || 'Location unavailable')}</span><p>${escapeHtml(hive.notes || 'Live hive monitoring is active for this hive.')}</p></div>
         </div>
         <div class="hive-metrics">
@@ -1072,11 +1076,10 @@ const initializeHivePage = () => {
         <div class="hive-controls">
           <div class="hive-control-grid">
             <span class="status-pill ${statusClass}">Hive status: ${escapeHtml(displayStatus(hive.status))}</span>
-            <span class="bee-status-pill ${beeStatus}">Bee status: ${displayStatus(beeStatus)}</span>
+            <span class="bee-status-pill ${beeStatus}">Bee status: ${beeStatus === 'na' ? 'N/A' : displayStatus(beeStatus)}</span>
             <button class="harvest-button" type="button" data-harvest-hive="${hiveId}" data-honey-type="Wild Forest Honey" data-quantity="${hive.weight || 1}">Harvest</button>
             <label class="bee-upload-button" tabindex="0" role="button">Upload image<input type="file" accept="image/jpeg,image/png" data-bee-image-upload="${hiveId}" aria-label="Upload bee image for ${hiveId}"></label>
           </div>
-          <button class="bee-refresh-button" type="button" data-refresh-bee="${hiveId}" title="Refresh bee assessment" aria-label="Refresh bee assessment for ${hiveId}">&#8635;</button>
         </div>
       </article>`;
     }).join('') : '<p class="hive-empty">No hives match your search.</p>';
@@ -1084,12 +1087,44 @@ const initializeHivePage = () => {
     hiveList.querySelectorAll('[data-harvest-hive]').forEach(restoreHarvestCooldown);
   };
 
+  const processChangedImage = async (hive) => {
+    const imagePath = String(hive.image_path || '').trim();
+    if (imagePath && imagePath === lastProcessedImagePath) return;
+
+    const response = await fetch(`/api/hives/${encodeURIComponent(hive.hive_id)}/refresh-bee-status`, { method: 'POST' });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || `Bee assessment failed for ${hive.hive_id}.`);
+
+    lastProcessedImagePath = imagePath;
+    hives = hives.map((currentHive) => currentHive.hive_id === hive.hive_id
+      ? { ...currentHive, ...payload }
+      : currentHive);
+    renderHives();
+  };
+
   const loadHives = async () => {
-    renderHivesLoading();
+    const previousHives = hasLoadedHives ? hives : null;
+    if (!hasLoadedHives) renderHivesLoading();
     const response = await fetch('/api/hives');
     if (!response.ok) throw new Error('Unable to load hives.');
-    hives = await response.json();
+    const updatedHives = await response.json();
+    const changedImages = previousHives
+      ? updatedHives.filter((hive) => {
+        const previousHive = previousHives.find((item) => item.hive_id === hive.hive_id);
+        return previousHive && String(previousHive.image_path || '').trim() !== String(hive.image_path || '').trim();
+      })
+      : [];
+    hives = updatedHives;
+    hasLoadedHives = true;
     renderHives();
+    for (const hive of changedImages) {
+      try {
+        await processChangedImage(hive);
+      } catch (error) {
+        console.error(`Bee image assessment failed for ${hive.hive_id}:`, error);
+        summary.textContent = error.message || `Bee image assessment failed for ${hive.hive_id}.`;
+      }
+    }
   };
   window.__hivePageReloadFn = () => loadHives().catch(showHiveLoadError);
 
@@ -1105,13 +1140,6 @@ const initializeHivePage = () => {
     event.preventDefault();
     uploadButton.querySelector('[data-bee-image-upload]')?.click();
   });
-  hiveList.addEventListener('click', (event) => {
-    const refreshButton = event.target.closest('[data-refresh-bee]');
-    if (refreshButton) {
-      refreshBeeStatus(refreshButton.dataset.refreshBee, refreshButton);
-      return;
-    }
-  });
   hiveList.addEventListener('change', async (event) => {
     const uploadInput = event.target.closest('[data-bee-image-upload]');
     const image = uploadInput?.files?.[0];
@@ -1120,12 +1148,14 @@ const initializeHivePage = () => {
     const formData = new FormData();
     formData.append('image', image);
     uploadInput.disabled = true;
-    summary.textContent = `Uploading bee image for ${hiveId}...`;
+    summary.textContent = `Uploading and assessing bee image for ${hiveId}...`;
     try {
       const response = await fetch(`/api/hives/${encodeURIComponent(hiveId)}/bee-image`, { method: 'POST', body: formData });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail || 'Bee image upload failed.');
-      await loadHives();
+      lastProcessedImagePath = String(payload.image_path || '').trim();
+      hives = hives.map((hive) => hive.hive_id === hiveId ? { ...hive, ...payload } : hive);
+      renderHives();
     } catch (error) {
       summary.textContent = error.message || 'Bee image upload failed.';
     } finally {
@@ -1149,3 +1179,4 @@ const initializeHivePage = () => {
 
 initializeHivePage();
 initializeHarvestPage();
+bindDashboardRealtime();

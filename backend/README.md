@@ -95,16 +95,30 @@ create table public.hives (
 	status text null default 'Healthy'::text,
 	beekeeper_id text null,
 	image_path text null,
-	bee_status text not null default 'Healthy'::text,
+	bee_status text not null default 'N/A'::text,
 	constraint hives_pkey primary key (hive_id),
 	constraint hives_beekeeper_id_fkey foreign KEY (beekeeper_id) references beekeeper (beekeeper_id),
-	constraint valid_bee_status check (bee_status = any (array['Healthy'::text, 'Infected'::text]))
+	constraint valid_bee_status check (bee_status = any (array['Healthy'::text, 'Infected'::text, 'N/A'::text]))
 ) TABLESPACE pg_default;
+```
+
+For an existing database, apply this migration so hives without an available
+image can store `N/A`:
+
+```sql
+alter table public.hives drop constraint if exists valid_bee_status;
+alter table public.hives alter column bee_status set default 'N/A';
+update public.hives
+set bee_status = 'N/A'
+where image_path is null or btrim(image_path) = '';
+alter table public.hives
+	add constraint valid_bee_status
+	check (bee_status = any (array['Healthy'::text, 'Infected'::text, 'N/A'::text]));
 ```
 
 Every beekeeper's hives must be fetched from `public.hives` using the logged-in
 beekeeper's `beekeeper_id` and displayed in the beekeeper's hive views.
-The bee-image refresh action stores `Infected` when the detector finds a
+The bee-image assessment stores `Infected` when the detector finds a
 Varroa mite; otherwise it stores `Healthy`. `Healthy` here means no visible
 Varroa was detected in that image, not a guarantee that the hive is disease-free.
 
@@ -114,10 +128,11 @@ scores, bounding boxes, class counts, thresholds, and the Varroa-priority
 `bee_status`. The endpoint returns `503` until the detector weights and
 Ultralytics dependency are available.
 `image_path` stores the bucket object path; the backend uploads and retrieves
-the image. Hives without an image retain the database default `Healthy`;
-assessed results are stored as `Healthy` or `Infected`, matching the constraint.
-An image upload saves its storage path; the per-hive refresh action downloads
-that image, runs the detector, and saves the resulting status.
+the image. Each uploaded image is assessed before the new path and result are
+saved to the hive row. Hives without an image use `N/A`. On the My Hives page,
+realtime image-path changes also trigger assessment; unrelated hive updates do
+not rerun the model. The page displays the returned result and subsequent
+realtime updates.
 
 ### `public.hive_iot_data`
 
