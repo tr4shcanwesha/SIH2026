@@ -29,23 +29,6 @@ const getBeeStatusClass = (hive) => {
   return ['healthy', 'infected', 'pending'].includes(status) ? status : 'pending';
 };
 
-const refreshBeeStatus = async (hiveId, button) => {
-  button.disabled = true;
-  button.title = 'Refreshing bee assessment...';
-  button.setAttribute('aria-label', `Refreshing bee assessment for ${hiveId}`);
-  try {
-    const response = await fetch(`/api/hives/${encodeURIComponent(hiveId)}/refresh-bee-status`, { method: 'POST' });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.detail || 'Bee status could not be refreshed.');
-    const reloads = [window.__overviewReloadFn, window.__hivePageReloadFn].filter((reload) => typeof reload === 'function');
-    await Promise.all(reloads.map((reload) => reload()));
-  } catch (error) {
-    button.disabled = false;
-    button.title = error.message || 'Bee status could not be refreshed.';
-    button.setAttribute('aria-label', `Retry bee assessment for ${hiveId}`);
-  }
-};
-
 const getHarvestCooldowns = () => {
   try {
     return JSON.parse(window.sessionStorage.getItem(harvestCooldownStorageKey) || '{}');
@@ -256,7 +239,7 @@ const initializeOverview = () => {
       return `
       <article class="overview-hive ${selectedHive === hive.hive_id ? 'selected' : ''}" data-overview-hive-card="${hiveId}">
         <div class="overview-hive-row"><button class="overview-hive-select" type="button" data-overview-hive="${hiveId}"><strong>${hiveId}</strong><span>${escapeHtml(hive.location || 'Location unavailable')} · ${escapeHtml(hive.bee_species || 'Species unavailable')}</span></button>
-        <div class="overview-hive-actions"><span class="overview-pill ${hiveStatusClass}">Hive status: ${escapeHtml(hiveStatus)}</span><span class="bee-status-pill ${beeStatus}">Bee status: ${beeStatus === 'na' ? 'N/A' : displayStatus(beeStatus)}</span><button class="bee-refresh-button" type="button" data-refresh-bee="${hiveId}" title="Refresh bee assessment" aria-label="Refresh bee assessment for ${hiveId}">&#8635;</button></div></div>
+        <div class="overview-hive-actions"><span class="overview-pill ${hiveStatusClass}">Hive status: ${escapeHtml(hiveStatus)}</span><span class="bee-status-pill ${beeStatus}">Bee status: ${beeStatus === 'na' ? 'N/A' : displayStatus(beeStatus)}</span></div></div>
         <div class="overview-mini"><div><b>${format(hive.temperature, '°C')}</b><span>Temp.</span></div><div><b>${format(hive.humidity, '%')}</b><span>Humidity</span></div><div><b>${format(hive.weight, ' kg')}</b><span>Weight</span></div></div>
       </article>`;
     }).join('') : '<p class="overview-empty">No hive data available.</p>';
@@ -364,11 +347,6 @@ const initializeOverview = () => {
     renderChart();
   });
   hiveList.addEventListener('click', (event) => {
-    const refreshButton = event.target.closest('[data-refresh-bee]');
-    if (refreshButton) {
-      refreshBeeStatus(refreshButton.dataset.refreshBee, refreshButton);
-      return;
-    }
     const hiveCard = event.target.closest('[data-overview-hive-card]');
     if (!hiveCard) return;
     selectedHive = hiveCard.dataset.overviewHiveCard;
