@@ -1,5 +1,11 @@
 const googleButton = document.querySelector('#google-sign-in');
 const googleStatus = document.querySelector('#google-status');
+const loginForm = document.querySelector('#login-form');
+const loginStatus = document.querySelector('#login-status');
+const loginButton = document.querySelector('#login-submit');
+const registerForm = document.querySelector('#register-form');
+const registerStatus = document.querySelector('#register-status');
+const registerButton = document.querySelector('#register-submit');
 
 function createSupabaseClient() {
   return window.supabase.createClient(
@@ -49,6 +55,53 @@ async function startGoogleSignIn() {
   }
 }
 
+async function signInWithPassword(event) {
+  event.preventDefault();
+  loginButton.disabled = true;
+  loginStatus.textContent = '';
+
+  try {
+    const formData = new FormData(loginForm);
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: formData.get('email'),
+        password: formData.get('password'),
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.detail || 'Sign in failed. Please try again.');
+    }
+    window.location.assign(result.redirect);
+  } catch (error) {
+    loginStatus.textContent = error.message;
+    loginButton.disabled = false;
+  }
+}
+
+async function registerWithEmail(event) {
+  event.preventDefault();
+  registerButton.disabled = true;
+  registerStatus.textContent = '';
+
+  try {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      body: new FormData(registerForm),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.detail || 'Registration failed. Please try again.');
+    }
+    window.location.assign(result.redirect);
+  } catch (error) {
+    registerStatus.textContent = error.message || 'Registration failed. Please try again.';
+    registerButton.disabled = false;
+  }
+}
+
 async function exchangeGoogleSession() {
   const query = new URLSearchParams(window.location.search);
   const isOAuthCallback = window.location.hash.includes('access_token') || query.has('code');
@@ -86,7 +139,9 @@ async function exchangeGoogleSession() {
   form.submit();
 }
 
-googleButton.addEventListener('click', startGoogleSignIn);
+googleButton?.addEventListener('click', startGoogleSignIn);
+loginForm?.addEventListener('submit', signInWithPassword);
+registerForm?.addEventListener('submit', registerWithEmail);
 exchangeGoogleSession().catch((error) => {
   document.documentElement.classList.remove('oauth-callback-pending');
   googleStatus.textContent = error.message;

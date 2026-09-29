@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi import Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from app.auth.auth import get_authenticated_beekeeper_id, get_beekeeper_status_by_id, get_session_id
+from app.auth.auth import admin_sessions, get_authenticated_beekeeper_id, get_beekeeper_status_by_id, get_session_id
 
 router = APIRouter()
 FRONTEND_DIR = Path(__file__).resolve().parents[3] / "frontend"
@@ -47,6 +47,8 @@ def auth_page(request: Request) -> FileResponse | RedirectResponse:
             headers={"Cache-Control": "no-store"},
         )
 
+    if get_session_id(request) in admin_sessions:
+        return RedirectResponse(url="/", status_code=303, headers={"Cache-Control": "no-store"})
     beekeeper_id = get_authenticated_beekeeper_id(request)
     status = get_beekeeper_status_by_id(beekeeper_id)
     if status == "approved":
@@ -70,8 +72,9 @@ def dashboard_page(request: Request) -> FileResponse | RedirectResponse:
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)
-    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
-        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
+    status = get_beekeeper_status_by_id(beekeeper_id)
+    if status != "approved":
+        return RedirectResponse(url=f"/onboarding?status={status}", status_code=303)
     return HTMLResponse(render_dashboard_shell(), headers={"Cache-Control": "no-store"})
 
 
@@ -80,7 +83,7 @@ def onboarding_page(request: Request) -> FileResponse | RedirectResponse:
     try:
         get_session_id(request)
     except HTTPException:
-        return RedirectResponse(url="/auth", status_code=303)
+        return FileResponse(FRONTEND_DIR / "auth" / "onboarding.html", headers={"Cache-Control": "no-store"})
     beekeeper_id = get_authenticated_beekeeper_id(request)
     if get_beekeeper_status_by_id(beekeeper_id) == "approved":
         return RedirectResponse(url="/dashboard", status_code=303)
@@ -106,8 +109,9 @@ def dashboard_view(request: Request, view_name: str) -> HTMLResponse | RedirectR
     except HTTPException:
         return RedirectResponse(url="/auth", status_code=303)
     beekeeper_id = get_authenticated_beekeeper_id(request)
-    if get_beekeeper_status_by_id(beekeeper_id) != "approved":
-        return RedirectResponse(url="/onboarding?status=pending", status_code=303)
+    status = get_beekeeper_status_by_id(beekeeper_id)
+    if status != "approved":
+        return RedirectResponse(url=f"/onboarding?status={status}", status_code=303)
     try:
         filename = DASHBOARD_VIEWS[view_name]
     except KeyError as error:

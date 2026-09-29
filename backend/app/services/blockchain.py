@@ -104,7 +104,7 @@ def get_batch_verification(batch_id: str) -> dict[str, Any]:
     hive = hive_response.data[0]
     beekeeper_response = (
         supabase.table("beekeeper")
-        .select("*")
+        .select("beekeeper_id,name,email,phone,location,kyc_status")
         .eq("beekeeper_id", hive["beekeeper_id"])
         .limit(1)
         .execute()
