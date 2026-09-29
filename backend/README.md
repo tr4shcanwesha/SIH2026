@@ -98,22 +98,14 @@ create table public.hives (
 	bee_status text not null default 'N/A'::text,
 	constraint hives_pkey primary key (hive_id),
 	constraint hives_beekeeper_id_fkey foreign KEY (beekeeper_id) references beekeeper (beekeeper_id),
-	constraint valid_bee_status check (bee_status = any (array['Healthy'::text, 'Infected'::text, 'N/A'::text]))
+	constraint hives_bee_status_check check (
+		(
+			bee_status = any (
+				array['Healthy'::text, 'Infected'::text, 'N/A'::text]
+			)
+		)
+	)
 ) TABLESPACE pg_default;
-```
-
-For an existing database, apply this migration so hives without an available
-image can store `N/A`:
-
-```sql
-alter table public.hives drop constraint if exists valid_bee_status;
-alter table public.hives alter column bee_status set default 'N/A';
-update public.hives
-set bee_status = 'N/A'
-where image_path is null or btrim(image_path) = '';
-alter table public.hives
-	add constraint valid_bee_status
-	check (bee_status = any (array['Healthy'::text, 'Infected'::text, 'N/A'::text]));
 ```
 
 Every beekeeper's hives must be fetched from `public.hives` using the logged-in
@@ -151,9 +143,7 @@ create table public.hive_iot_data (
   constraint hive_iot_data_hive_id_fkey foreign KEY (hive_id) references hives (hive_id) on delete CASCADE
 ) TABLESPACE pg_default;
 
-create index IF not exists idx_hive_iot_data_hive_time
-  on public.hive_iot_data using btree (hive_id, recorded_at desc)
-  TABLESPACE pg_default;
+create index IF not exists idx_hive_iot_data_hive_time on public.hive_iot_data using btree (hive_id, recorded_at desc) TABLESPACE pg_default;
 ```
 
 Each new hive must receive an initial `public.hive_iot_data` row after the hive
@@ -165,21 +155,21 @@ most recent IoT row for each hive.
 
 ```sql
 create table public.beekeeper (
-	beekeeper_id text not null,
-	name text not null,
-	email text not null,
-	phone text not null,
-	location text not null,
-	kyc_status text not null default 'pending'::text,
-	identity_document_type text not null,
-	identity_document_path text not null,
-	address_document_type text null,
-	address_document_path text null,
-	certificate_type text not null,
-	certificate_path text not null,
-	password text not null,
-	constraint beekeeper_pkey primary key (beekeeper_id),
-	constraint beekeeper_email_key unique (email)
+  beekeeper_id text not null,
+  name text not null,
+  email text not null,
+  phone text not null,
+  location text not null,
+  kyc_status text not null default 'pending'::text,
+  identity_document_type text not null,
+  identity_document_path text not null,
+  address_document_type text null,
+  address_document_path text null,
+  certificate_type text not null,
+  certificate_path text not null,
+  password text not null,
+  constraint beekeeper_pkey primary key (beekeeper_id),
+  constraint beekeeper_email_key unique (email)
 ) TABLESPACE pg_default;
 ```
 
@@ -202,14 +192,14 @@ addresses in `HONEYCHAIN_ADMIN_EMAILS`.
 
 ```sql
 create table public.honey_batches (
-	batch_id text not null,
-	hive_id text not null,
-	honey_type text not null,
-	harvest_date date not null,
-	quantity numeric not null,
-	status text not null,
-	constraint honey_batches_pkey primary key (batch_id),
-	constraint honey_batches_hive_id_fkey foreign KEY (hive_id) references hives (hive_id)
+  batch_id text not null,
+  hive_id text not null,
+  honey_type text not null,
+  harvest_date timestamp with time zone not null,
+  quantity numeric not null,
+  status text not null default 'HARVESTED'::text,
+  constraint honey_batches_pkey primary key (batch_id),
+  constraint honey_batches_hive_id_fkey foreign KEY (hive_id) references hives (hive_id)
 ) TABLESPACE pg_default;
 ```
 
@@ -220,13 +210,13 @@ honey type, exact harvest date, and quantity.
 
 ```sql
 create table public.blockchain_blocks (
-	batch_id text null,
-	event_type text not null,
-	timestamp timestamp with time zone null default now(),
-	data_hash text not null,
-	previous_hash text null,
-	block_hash text not null,
-	constraint blockchain_blocks_batch_id_fkey foreign KEY (batch_id) references honey_batches (batch_id)
+  batch_id text null,
+  event_type text not null,
+  timestamp timestamp with time zone null default now(),
+  data_hash text not null,
+  previous_hash text null,
+  block_hash text not null,
+  constraint blockchain_blocks_batch_id_fkey foreign KEY (batch_id) references honey_batches (batch_id)
 ) TABLESPACE pg_default;
 ```
 
@@ -234,12 +224,15 @@ create table public.blockchain_blocks (
 
 ```sql
 create table public.batch_certificates (
-	certificate_id text not null primary key,
-	batch_id text not null unique references honey_batches (batch_id),
+	certificate_id text not null,
+	batch_id text not null,
 	issued_at timestamp with time zone not null default now(),
 	lab_name text not null,
 	results jsonb not null,
-	storage_path text not null
+	storage_path text not null,
+	constraint batch_certificates_pkey primary key (certificate_id),
+	constraint batch_certificates_batch_id_key unique (batch_id),
+	constraint batch_certificates_batch_id_fkey foreign KEY (batch_id) references honey_batches (batch_id)
 ) TABLESPACE pg_default;
 ```
 
