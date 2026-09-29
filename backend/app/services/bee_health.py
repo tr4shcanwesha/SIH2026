@@ -9,7 +9,7 @@ from fastapi import HTTPException, UploadFile
 from PIL import Image, UnidentifiedImageError
 
 from app.auth.auth import supabase
-from app.ml_model import predict
+from app.ml_model import ModelUnavailableError, predict
 
 BUCKET = os.getenv("SUPABASE_BEE_IMAGE_BUCKET", "bee-images")
 MAX_IMAGE_SIZE = 2 * 1024 * 1024
@@ -116,12 +116,14 @@ def refresh_hive_bee_status(hive_id: str, beekeeper_id: str) -> dict[str, Any]:
     try:
         with Image.open(BytesIO(image_bytes)) as image:
             prediction = predict(image.convert("RGB"))
+    except ModelUnavailableError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
     except (UnidentifiedImageError, OSError) as error:
         raise HTTPException(status_code=422, detail="The stored bee image cannot be read") from error
     except Exception as error:
         raise HTTPException(status_code=500, detail="Bee image assessment failed") from error
 
-    normalized_status = str(prediction.get("prediction", "")).strip().lower()
+    normalized_status = str(prediction.get("bee_status", prediction.get("prediction", ""))).strip().lower()
     bee_status = {"healthy": "Healthy", "infected": "Infected"}.get(normalized_status)
     if bee_status is None:
         raise HTTPException(status_code=500, detail="The model returned an unsupported bee status")

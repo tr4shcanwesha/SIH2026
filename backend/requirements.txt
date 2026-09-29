@@ -7,5 +7,4 @@ reportlab
 groq
 Pillow
 pydantic
-torch
-torchvision
+ultralytics>=8.3,<9
