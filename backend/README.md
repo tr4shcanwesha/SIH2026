@@ -75,6 +75,8 @@ create table public.hives (
 	installation_date date not null,
 	status text null default 'Healthy'::text,
 	beekeeper_id text null,
+	image_path text null,
+	bee_status text not null default 'healthy'::text,
 	constraint hives_pkey primary key (hive_id),
 	constraint hives_beekeeper_id_fkey foreign KEY (beekeeper_id) references beekeeper (beekeeper_id)
 ) TABLESPACE pg_default;
@@ -82,6 +84,11 @@ create table public.hives (
 
 Every beekeeper's hives must be fetched from `public.hives` using the logged-in
 beekeeper's `beekeeper_id` and displayed in the beekeeper's hive views.
+Create a private Supabase Storage bucket named `bee-images` with a 2 MB file
+limit and allow JPG and PNG images. `image_path` stores the bucket object path;
+the backend uploads and retrieves the image. `bee_status` defaults to `healthy`
+and becomes `pending` when a new image is uploaded. The per-hive refresh action
+downloads that image, runs the classifier, and saves `healthy` or `infected`.
 
 ### `public.hive_iot_data`
 

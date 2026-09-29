@@ -1,8 +1,10 @@
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
 
-MODEL_PATH = "models/honeychain_varroa_model.pth"
+MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "honeychain_varroa_model.pth"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

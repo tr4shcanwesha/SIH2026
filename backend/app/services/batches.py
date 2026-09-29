@@ -186,7 +186,7 @@ def list_hive_iot_data(beekeeper_id: str, limit: int = 8) -> list[dict[str, Any]
 
 
 def list_hive_alerts(beekeeper_id: str) -> list[dict[str, Any]]:
-    hives_response = supabase.table("hives").select("hive_id, location").eq("beekeeper_id", beekeeper_id).execute()
+    hives_response = supabase.table("hives").select("hive_id, location, bee_status").eq("beekeeper_id", beekeeper_id).execute()
     alerts: list[dict[str, Any]] = []
     for hive in hives_response.data or []:
         readings = (
@@ -197,6 +197,19 @@ def list_hive_alerts(beekeeper_id: str) -> list[dict[str, Any]]:
             .limit(2)
             .execute()
         ).data or []
+        if str(hive.get("bee_status", "healthy")).lower() == "infected":
+            alerts.append(
+                {
+                    "hive_id": hive["hive_id"],
+                    "location": hive.get("location") or "Location unavailable",
+                    "type": "bee_status",
+                    "severity": "critical",
+                    "title": "Bee image indicates infection",
+                    "description": "The latest model assessment marked this hive as infected. Review the hive and consider a closer inspection.",
+                    "value": "infected",
+                    "recorded_at": readings[0]["recorded_at"] if readings else None,
+                }
+            )
         if not readings:
             continue
         latest = readings[0]

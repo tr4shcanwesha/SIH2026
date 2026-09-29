@@ -1,7 +1,7 @@
 import random
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -34,6 +34,7 @@ from app.services.beekeepers import (
     update_beekeeper_profile_with_uploads,
 )
 from app.services.assistant import answer_question
+from app.services.bee_health import get_hive_image, refresh_hive_bee_status, upload_hive_image
 
 router = APIRouter()
 
@@ -199,6 +200,22 @@ def assistant_chat(payload: AssistantMessage, request: Request) -> dict[str, str
 def list_hives(request: Request) -> list[dict[str, Any]]:
     beekeeper_id = current_beekeeper_id(request)
     return list_hive_records(beekeeper_id)
+
+
+@router.get("/api/hives/{hive_id}/image")
+def hive_image(hive_id: str, request: Request) -> Response:
+    image_bytes, content_type = get_hive_image(hive_id, current_beekeeper_id(request))
+    return Response(content=image_bytes, media_type=content_type, headers={"Cache-Control": "private, no-store"})
+
+
+@router.post("/api/hives/{hive_id}/bee-image")
+async def upload_bee_image(hive_id: str, request: Request, image: UploadFile = File(...)) -> dict[str, Any]:
+    return await upload_hive_image(hive_id, current_beekeeper_id(request), image)
+
+
+@router.post("/api/hives/{hive_id}/refresh-bee-status")
+def refresh_bee_status(hive_id: str, request: Request) -> dict[str, Any]:
+    return refresh_hive_bee_status(hive_id, current_beekeeper_id(request))
 
 
 @router.get("/api/hive-iot-data")
