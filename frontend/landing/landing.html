@@ -1,221 +1,1352 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HoneyChain — Blockchain Traceability for Rural Beekeeping</title>
-<meta name="description" content="A blockchain, AI and IoT ecosystem for honey authenticity, hive health and market access, built for KVIC's Honey Mission.">
-<link rel="icon" type="image/png" href="/src/images/logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/landing/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Honey Chain | Smarter hives. Traceable honey.</title>
+    <link rel="icon" type="image/png" href="/src/images/logo.png">
+
+    <!-- Google Fonts: Fraunces (Display Serif), Inter (Body), JetBrains Mono (Code/Metrics) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Anime.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+    <style>
+/* ================================================
+   HoneyChain — design tokens & provided styles
+   ================================================ */
+:root{
+  --comb-900: #2A1B0F;   /* deep hive brown, near-black */
+  --comb-800: #3D2817;
+  --comb-600: #6B4A2C;
+  --wax-100: #FBF3E1;    /* warm beeswax ivory background */
+  --wax-50:  #FFFBF3;
+  --gold-500:#E8A317;    /* honey gold */
+  --gold-600:#C7860B;
+  --gold-300:#F4C64E;
+  --hive-green:#4A6B45;  /* apiary / nature accent */
+  --hive-green-dark:#33492F;
+  --verified-teal:#1F6F5C; /* blockchain / trust accent */
+  --alert-rust:#B5502C;
+  --ink: #2A1D12;
+  --ink-soft: #5B4A38;
+  --line: rgba(42,27,15,0.14);
+  --shadow-soft: 0 10px 30px rgba(42,27,15,0.10);
+  --radius-cell: 14px;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', -apple-system, Segoe UI, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--wax-100);
+  color:var(--ink);
+  font-family:var(--font-body);
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+img{max-width:100%;display:block;}
+a{color:inherit;text-decoration:none;}
+h1,h2,h3,h4{
+  font-family:var(--font-display);
+  color:var(--comb-900);
+  margin:0 0 .4em 0;
+  line-height:1.08;
+  font-weight:600;
+  letter-spacing:-0.01em;
+}
+p{margin:0 0 1em 0;color:var(--ink-soft);}
+.container{max-width:1180px;margin:0 auto;padding:0 28px;}
+:focus-visible{outline:3px solid var(--verified-teal);outline-offset:2px;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important;}
+}
+
+/* ---------- honeycomb texture backdrop ---------- */
+.comb-field{
+  position:absolute; inset:0; overflow:hidden; pointer-events:none;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(232,163,23,0.06) 0, transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(31,111,92,0.05) 0, transparent 45%);
+}
+
+/* ================================================
+   NAV
+   ================================================ */
+.site-nav{
+  position:sticky; top:0; z-index:50;
+  background:rgba(251,243,225,0.88);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.site-nav .container{
+  display:flex; align-items:center; justify-content:space-between;
+  height:72px;
+}
+.brand{display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:600; font-size:1.28rem; color:var(--comb-900);}
+.brand-logo{width:30px;height:30px;object-fit:contain;flex:none;display:block;}
+.nav-links{display:flex; align-items:center; flex:1; margin-left:32px;}
+.nav-primary-links{display:flex; align-items:center; justify-content:center; gap:24px; flex:1;}
+.nav-auth-actions{display:flex; align-items:center; gap:12px; margin-left:24px;}
+
+/* Dropdown Menu Extensions */
+.dropdown-group { position: relative; }
+.dropdown-menu {
+  position: absolute; top: 100%; left: 0; width: 240px;
+  background: var(--wax-50); border: 1px solid var(--line);
+  border-radius: var(--radius-cell); padding: 8px;
+  box-shadow: var(--shadow-soft); opacity: 0; visibility: hidden;
+  transform: translateY(8px); transition: all 0.2s ease; z-index: 60;
+}
+.dropdown-group:hover .dropdown-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+.dropdown-item {
+  display: block; padding: 10px 12px; border-radius: 8px;
+  color: var(--ink); font-size: 0.86rem; font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.dropdown-item:hover { background: rgba(232,163,23,0.12); color: var(--gold-600); }
+
+.site-nav .nav-links .btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--comb-900); color:var(--wax-50); border:none;
+  border-radius:100px; padding:10px 20px; font-weight:600; font-size:0.92rem;
+  box-shadow:var(--shadow-soft); transition:background .15s ease, color .15s ease, transform .15s ease;
+}
+.site-nav .nav-links .btn:hover{
+  background:var(--gold-600); color:var(--comb-900); transform:translateY(-1px);
+}
+.nav-auth-link{font-size:0.92rem; color:var(--ink-soft); font-weight:600; background:none; border:none; cursor:pointer;}
+.nav-auth-link:hover{color:var(--gold-600);}
+.nav-toggle{display:none; background:none; border:none; cursor:pointer; color:var(--comb-900);}
+
+/* Mobile menu overlay */
+.mobile-drawer {
+  display: none; background: var(--wax-50); border-bottom: 1px solid var(--line);
+  padding: 16px 28px; space-y: 12px;
+}
+.mobile-drawer.active { display: block; }
+.mobile-drawer a { display: block; padding: 8px 0; color: var(--comb-900); font-weight: 500; border-bottom: 1px dashed var(--line); }
+
+/* ================================================
+   HERO
+   ================================================ */
+.hero{
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:calc(100vh - 72px);
+  min-height:calc(100svh - 72px);
+  padding:48px 0 60px;
+  overflow:hidden;
+}
+.hero::before {
+  content:"";
+  position: absolute;
+  inset: 0;
+  background-image:url("/src/images/bee-hero.png");
+  background-size:cover;
+  background-position:center 1%;
+  background-repeat:no-repeat;
+  opacity:0.30;
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-grid{
+  display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; align-items:center;
+  position:relative; z-index:1;
+}
+.hero-entrance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.eyebrow-tag{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:0.84rem; font-weight:600; color:var(--hive-green-dark);
+  background:rgba(74,107,69,0.10); border:1px solid rgba(74,107,69,0.25);
+  padding:6px 14px; border-radius:100px; margin-bottom:22px;
+}
+.eyebrow-tag .dot{width:7px;height:7px;border-radius:50%;background:var(--hive-green);}
+.hero h1{font-size:3.4rem; max-width:14ch; text-align:center;}
+.hero h1 em{font-style:normal; color:var(--gold-600); background:linear-gradient(180deg, transparent 62%, var(--gold-300) 62%);}
+.hero-sub{font-size:1.14rem; max-width:46ch; margin:20px auto 30px; text-align:center;}
+.hero-actions{display:flex; gap:14px; flex-wrap:wrap; justify-content:center;}
+.btn{
+  display:inline-flex; align-items:center; gap:8px; padding:14px 26px;
+  border-radius:100px; font-weight:600; font-size:0.98rem; cursor:pointer; border:none;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.btn:hover{transform:translateY(-2px);}
+.btn-primary{background:var(--comb-900); color:var(--wax-50); box-shadow:var(--shadow-soft);}
+.btn-primary:hover{background:var(--gold-600); color:var(--comb-900);}
+.btn-outline{background:transparent; color:var(--comb-900); border:1.5px solid var(--comb-900);}
+.btn-outline:hover{border-color:var(--gold-600); color:var(--gold-600);}
+
+.hero-stats{display:flex; gap:34px; margin-top:42px;}
+.hero-stat b{display:block; font-family:var(--font-display); font-size:1.7rem; color:var(--comb-900);}
+.hero-stat span{font-size:0.84rem; color:var(--ink-soft);}
+
+/* Hero visual: jar + QR + hex trace */
+.hero-visual{position:relative; display:flex; align-items:center; justify-content:center; min-height:420px;}
+.hex-orbit{position:absolute; width:100%; height:100%;}
+.jar-card{
+  position:relative; z-index:2;
+  background:var(--wax-50); border:1px solid var(--line); border-radius:22px;
+  padding:26px; width:310px; box-shadow:0 24px 48px rgba(42,27,15,0.16);
+}
+.jar-card .badge-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+.chain-badge{
+  display:flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:700;
+  color:var(--verified-teal); background:rgba(31,111,92,0.10); padding:5px 10px; border-radius:100px;
+  letter-spacing:.02em;
+}
+.batch-id{font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-soft);}
+.qr-wrap{display:flex; justify-content:center; margin:8px 0 16px;}
+.jar-card h4{font-size:1.05rem; margin-bottom:2px;}
+.jar-meta{display:flex; flex-direction:column; gap:6px; margin-top:12px; font-size:0.82rem; color:var(--ink-soft);}
+.jar-meta div{display:flex; justify-content:space-between; border-top:1px dashed var(--line); padding-top:6px;}
+.jar-meta b{color:var(--comb-900); font-weight:600;}
+
+/* ================================================
+   SECTION SCAFFOLD
+   ================================================ */
+section{padding:96px 0; position:relative;}
+.section-head{max-width:640px; margin:0 0 52px;}
+.section-head h2{font-size:2.3rem;}
+.section-head p{font-size:1.06rem;}
+.align-center{margin-left:auto;margin-right:auto;text-align:center;}
+
+/* ---------- Problem stats ---------- */
+.problem{background:var(--comb-900); color:var(--wax-100);}
+.problem .section-head h2, .problem .section-head p{color:var(--wax-100);}
+.problem .section-head p{color:rgba(251,243,225,0.72);}
+.stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:rgba(251,243,225,0.14); border-radius:18px; overflow:hidden;}
+.stat-cell{background:rgba(251,243,225,0.03); padding:34px 26px;}
+.stat-cell b{display:block; font-family:var(--font-display); font-size:2.5rem; color:var(--gold-300); margin-bottom:6px;}
+.stat-cell span{font-size:0.9rem; color:rgba(251,243,225,0.75);}
+
+/* ---------- Chain-of-custody flow ---------- */
+.flow{position:relative;}
+.flow-track{
+  display:grid; grid-template-columns:repeat(5,1fr); gap:0; position:relative; margin-top:10px;
+}
+.flow-track::before{
+  content:""; position:absolute; top:34px; left:6%; right:6%; height:2px;
+  background:repeating-linear-gradient(90deg, var(--gold-500) 0 10px, transparent 10px 18px);
+}
+.flow-step{position:relative; padding:0 14px; text-align:center; cursor:pointer;}
+.flow-num{
+  width:68px; height:68px; margin:0 auto 18px; border-radius:50%;
+  background:var(--wax-50); border:2px solid var(--gold-500); color:var(--comb-900);
+  display:flex; align-items:center; justify-content:center; position:relative; z-index:2;
+  font-family: var(--font-mono); font-weight: 700; transition: all 0.2s ease;
+}
+.flow-step.active .flow-num { background: var(--gold-500); color: var(--comb-900); transform: scale(1.1); }
+.flow-step h4{font-size:1.02rem; margin-bottom:6px;}
+.flow-step p{font-size:0.86rem;}
+
+/* ---------- Feature grid ---------- */
+.feature-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:22px;}
+.feature-card{
+  background:var(--wax-50); border:1px solid var(--line); border-radius:var(--radius-cell);
+  padding:32px; position:relative; overflow:hidden; transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.feature-card:hover { transform: translateY(-3px); border-color: var(--gold-500); }
+.feature-card::after{
+  content:""; position:absolute; width:150px; height:150px; right:-50px; top:-50px;
+  background:var(--icon-tint, var(--gold-300)); opacity:0.16; border-radius:50%;
+}
+.feature-icon{
+  width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  background:var(--icon-tint, var(--gold-300)); margin-bottom:18px; position:relative; z-index:1;
+}
+.feature-icon svg{width:24px;height:24px;stroke:var(--comb-900);}
+.feature-card h4{font-size:1.18rem; position:relative; z-index:1;}
+.feature-card p{font-size:0.94rem; margin-bottom:0; position:relative; z-index:1;}
+
+/* ---------- Interactive Batch Search Tool ---------- */
+.batch-search-card {
+  background: var(--wax-50); border: 1px solid var(--line); border-radius: 22px;
+  padding: 32px; box-shadow: var(--shadow-soft); max-width: 800px; margin: 0 auto;
+}
+.batch-input-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.batch-input {
+  flex: 1; min-width: 240px; padding: 12px 18px; border-radius: 100px;
+  border: 1px solid var(--line); background: var(--wax-100);
+  font-family: var(--font-mono); font-size: 0.9rem; color: var(--comb-900);
+}
+.batch-input:focus { outline: none; border-color: var(--verified-teal); }
+.sample-pills { display: flex; gap: 8px; align-items: center; font-size: 0.82rem; color: var(--ink-soft); flex-wrap: wrap; }
+.sample-pill {
+  background: rgba(232,163,23,0.12); border: 1px solid rgba(232,163,23,0.3);
+  padding: 3px 10px; border-radius: 100px; cursor: pointer; font-family: var(--font-mono); text-decoration: none;
+}
+.sample-pill:hover { background: var(--gold-500); color: var(--comb-900); }
+
+/* ---------- Dashboard preview strip ---------- */
+.preview-panel{
+  background:var(--wax-50); border:1px solid var(--line); border-radius:22px;
+  padding:24px; box-shadow:var(--shadow-soft);
+}
+.telemetry-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 16px; }
+.telemetry-box {
+  background: var(--wax-100); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+}
+.telemetry-box label { font-size: 0.76rem; color: var(--ink-soft); text-transform: uppercase; font-family: var(--font-mono); }
+.telemetry-box .val { font-family: var(--font-display); font-size: 1.8rem; color: var(--comb-900); margin: 4px 0; }
+.telemetry-box .status { font-size: 0.75rem; color: var(--verified-teal); font-weight: 600; }
+
+/* ---------- Field Notes Carousel ---------- */
+.carousel-track { display: flex; gap: 24px; overflow-x: auto; scroll-behavior: smooth; padding-bottom: 12px; }
+.carousel-track::-webkit-scrollbar { height: 6px; }
+.carousel-track::-webkit-scrollbar-thumb { background: var(--gold-500); border-radius: 10px; }
+.field-card {
+  min-width: 320px; max-width: 320px; background: var(--wax-50); border: 1px solid var(--line);
+  border-radius: var(--radius-cell); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;
+}
+.field-card-img { height: 180px; background: var(--comb-800); position: relative; overflow: hidden; }
+.field-card-img img { width: 100%; height: 100%; object-fit: cover; opacity: 0.88; transition: transform 0.4s ease; }
+.field-card:hover .field-card-img img { transform: scale(1.05); }
+.field-card-body { padding: 20px; }
+.field-card-tag { font-family: var(--font-mono); font-size: 0.7rem; color: var(--gold-600); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+
+/* ---------- Impact / KVIC clusters ---------- */
+.impact{background:linear-gradient(180deg, var(--wax-100), var(--wax-50));}
+.impact-grid{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center;}
+.impact-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:20px;}
+.impact-list li{display:flex; gap:16px; align-items:flex-start;}
+.impact-list .num{
+  font-family:var(--font-mono); font-size:0.8rem; color:var(--gold-600); font-weight:700;
+  border:1.5px solid var(--gold-500); border-radius:50%; width:30px; height:30px; flex:none;
+  display:flex; align-items:center; justify-content:center;
+}
+.impact-list h4{font-size:1.02rem; margin-bottom:3px;}
+.impact-list p{font-size:0.92rem; margin-bottom:0;}
+.map-card{
+  background:var(--hive-green-dark); border-radius:22px; padding:34px; color:var(--wax-100); min-height:360px;
+  position:relative; overflow:hidden;
+}
+.map-card h4{color:var(--wax-100); font-size:1.1rem;}
+.map-dot{position:absolute; width:10px; height:10px; border-radius:50%; background:var(--gold-300); box-shadow:0 0 0 6px rgba(244,198,78,0.22);}
+
+/* ---------- CTA ---------- */
+.cta{
+  background:var(--gold-500); border-radius:26px; padding:64px 56px;
+  display:flex; align-items:center; justify-content:space-between; gap:40px; flex-wrap:wrap;
+}
+.cta h2{font-size:2rem; max-width:16ch; color: var(--comb-900);}
+.cta p{color:var(--comb-800); max-width:38ch;}
+.cta .btn-primary{background:var(--comb-900); color: var(--wax-50);}
+
+/* ---------- Footer ---------- */
+footer{border-top:1px solid var(--line); padding:48px 0 30px; background: var(--wax-50);}
+.foot-grid{display:flex; justify-content:space-between; gap:40px; flex-wrap:wrap;}
+.foot-brand p{max-width:34ch; font-size:0.9rem;}
+.foot-cols{display:flex; gap:64px;}
+.foot-col h5{font-size:0.84rem; text-transform:none; color:var(--comb-900); margin-bottom:14px; font-weight:700;}
+.foot-col a{display:block; font-size:0.88rem; color:var(--ink-soft); margin-bottom:10px;}
+.foot-col a:hover{color:var(--gold-600);}
+.foot-bottom{margin-top:40px; padding-top:22px; border-top:1px solid var(--line); font-size:0.8rem; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+
+/* ---------- Auth Modal ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(42,27,15,0.6); backdrop-filter: blur(6px);
+  z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px;
+  overflow-y: auto;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+}
+.modal-overlay.active {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transition: opacity 0.25s ease;
+}
+.modal-box {
+  background: var(--wax-50); border: 1px solid var(--line); border-radius: 22px;
+  width: 100%; max-width: 440px; padding: 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  position: relative; max-height: calc(100vh - 40px); overflow-y: auto;
+}
+.login-modal-box h3{font-size:1.6rem;margin:0 36px 26px 0;}
+.login-modal-box #modalSub{font-size:.86rem;margin-bottom:28px;}
+.login-modal-box [hidden]{display:none !important;}
+.login-modal-box.register-mode{max-width:520px;}
+.login-modal-close{
+  position:absolute;top:16px;right:16px;width:32px;height:32px;display:grid;place-items:center;
+  border:0;border-radius:8px;background:none;color:var(--ink-soft);cursor:pointer;
+}
+.login-modal-close:hover{background:rgba(42,27,15,.07);color:var(--comb-900);}
+.login-modal-close svg{width:22px;height:22px;}
+.login-modal-form{display:flex;flex-direction:column;gap:14px;}
+.login-modal-field label{
+  display:block;margin-bottom:4px;color:var(--comb-900);font-size:.8rem;font-weight:600;
+}
+.login-modal-field .batch-input{
+  display:block;flex:none;width:100%;min-width:0;padding:12px 18px;
+  background:#FBF3E1;font-family:var(--font-mono);font-size:.9rem;
+}
+.login-modal-field .batch-input:focus{outline:3px solid rgba(31,111,92,.18);border-color:var(--verified-teal);}
+.login-modal-submit{width:100%;justify-content:center;padding:12px;margin-top:8px;}
+.login-modal-submit:disabled{cursor:wait;opacity:.65;transform:none;}
+.login-modal-status{min-height:0;margin:8px 0 0;color:var(--alert-rust);font-size:.84rem;}
+.login-modal-status:empty{display:none;}
+.login-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--ink-soft);font-size:.8rem;}
+.login-divider::before,.login-divider::after{content:"";height:1px;flex:1;background:var(--line);}
+.gsi-material-button{
+  -moz-user-select:none;-webkit-user-select:none;-ms-user-select:none;
+  -webkit-appearance:none;appearance:none;background-color:#fff;background-image:none;
+  border:1px solid #747775;border-radius:20px;box-sizing:border-box;color:#1f1f1f;
+  cursor:pointer;font-family:Roboto,Arial,sans-serif;font-size:14px;height:40px;
+  letter-spacing:.25px;outline:none;overflow:hidden;padding:0 12px;position:relative;
+  text-align:center;transition:background-color .218s,border-color .218s,box-shadow .218s;
+  vertical-align:middle;white-space:nowrap;width:100%;max-width:none;min-width:0;
+}
+.gsi-material-button-icon{height:20px;margin-right:10px;min-width:20px;width:20px;}
+.gsi-material-button-icon svg{height:20px;width:20px;}
+.gsi-material-button-content-wrapper{
+  align-items:center;display:flex;flex-direction:row;flex-wrap:nowrap;
+  height:100%;justify-content:space-between;position:relative;width:100%;
+}
+.gsi-material-button-contents{
+  flex-grow:1;font-family:Roboto,Arial,sans-serif;font-weight:500;
+  overflow:hidden;text-overflow:ellipsis;vertical-align:top;
+}
+.gsi-material-button-state{bottom:0;left:0;opacity:0;position:absolute;right:0;top:0;transition:opacity .218s;}
+.gsi-material-button:disabled{cursor:default;background-color:#ffffff61;border-color:#1f1f1f1f;}
+.gsi-material-button:disabled .gsi-material-button-contents,
+.gsi-material-button:disabled .gsi-material-button-icon{opacity:.38;}
+.gsi-material-button:not(:disabled):active .gsi-material-button-state,
+.gsi-material-button:not(:disabled):focus .gsi-material-button-state{background-color:#303030;opacity:.12;}
+.gsi-material-button:not(:disabled):hover{box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);}
+.gsi-material-button:not(:disabled):hover .gsi-material-button-state{background-color:#303030;opacity:.08;}
+.login-modal-box > .gsi-material-button{display:block;margin:0 auto;}
+.login-modal-register{
+  display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:4px;
+  margin-top:16px;color:var(--ink-soft);font-size:.82rem;text-align:center;
+}
+.login-modal-register a{margin-left:4px;color:var(--gold-600);font-weight:600;text-decoration:underline;}
+.login-modal-register button{
+  margin-left:4px;padding:0;border:0;background:none;color:var(--gold-600);
+  font:600 .82rem var(--font-body);text-decoration:underline;cursor:pointer;
+}
+body.login-modal-open{overflow:hidden;}
+@media(max-width:520px){
+  .modal-overlay{padding:14px;}
+  .modal-box{padding:28px 22px;max-height:calc(100vh - 28px);}
+  .login-modal-box h3{font-size:1.45rem;}
+}
+
+/* ================================================
+   RESPONSIVE
+   ================================================ */
+@media (max-width: 980px){
+  .hero-grid, .impact-grid, .panel-row{grid-template-columns:1fr;}
+  .stat-grid, .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .feature-grid, .hive-grid{grid-template-columns:1fr;}
+  .flow-track{grid-template-columns:1fr; gap:36px;}
+  .flow-track::before{display:none;}
+  .telemetry-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media (max-width: 720px){
+  .nav-links{display:none;}
+  .nav-toggle{display:block;}
+  .hero h1{font-size:2.4rem;}
+  .cta{flex-direction:column; align-items:flex-start; padding:40px 28px;}
+  .foot-grid{flex-direction:column;}
+  .telemetry-grid{grid-template-columns:1fr;}
+}
+    </style>
 </head>
 <body>
 
-<nav class="site-nav">
-  <div class="container">
-    <a href="/" class="brand">
-      <img src="/src/images/logo.png" alt="HoneyChain logo" class="brand-logo">
-      HoneyChain
-    </a>
-    <div class="nav-links">
-      <a href="/verify" class="btn btn-primary">For consumers</a>
-      <a href="/auth" class="btn btn-primary">For beekeepers</a>
-    </div>
-  </div>
-</nav>
+    <!-- COMB BACKDROP TEXTURE -->
+    <div class="comb-field"></div>
 
-<header class="hero">
-  <div class="comb-field"></div>
-  <div class="container hero-grid">
-    <div>
-      <span class="eyebrow-tag"><span class="dot"></span> Prototype for KVIC's Honey Mission</span>
-      <h1>Every jar tells the beekeeper's <em>true story</em>.</h1>
-      <p class="hero-sub">HoneyChain links each batch to the hive it came from — recorded on a blockchain, monitored by IoT sensors, checked by AI, and confirmed by consumers with a single QR scan.</p>
-      <div class="hero-actions">
-        <a href="/verify" class="btn btn-primary">Try consumer verification</a>
-      </div>
-      <div class="hero-stats">
-        <div class="hero-stat"><b>100%</b><span>batches on-chain</span></div>
-        <div class="hero-stat"><b>&lt; 3 sec</b><span>QR verification time</span></div>
-        <div class="hero-stat"><b>24/7</b><span>hive monitoring</span></div>
-      </div>
+    <!-- SITE NAVIGATION BAR -->
+    <nav class="site-nav">
+        <div class="container">
+
+            <!-- Brand Logo -->
+            <a href="#" class="brand">
+                <i data-lucide="hexagon" class="brand-logo" style="color: var(--gold-500);"></i>
+                <span>Honey Chain</span>
+            </a>
+
+            <!-- Desktop Links -->
+            <div class="nav-links">
+                <div class="nav-primary-links">
+
+                <!-- For Consumers Dropdown -->
+                <div class="dropdown-group">
+                    <a href="#qr-verification" class="nav-auth-link" style="display:flex; items-center; gap:4px;">
+                        For Consumers <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="#qr-verification" class="dropdown-item">Jar Batch Verification</a>
+                        <a href="#custody-flow" class="dropdown-item">Chain of Custody Flow</a>
+                        <a href="#consumer-impact" class="dropdown-item">Purity & Origin Guarantee</a>
+                    </div>
+                </div>
+
+                <!-- For Beekeepers Dropdown -->
+                <div class="dropdown-group">
+                    <a href="#beekeeper-tech" class="nav-auth-link" style="display:flex; items-center; gap:4px;">
+                        For Beekeepers <i data-lucide="chevron-down" style="width:14px; height:14px;"></i>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="#beekeeper-tech" class="dropdown-item">Smart Hive IoT Nodes</a>
+                        <a href="#live-telemetry" class="dropdown-item">Acoustic AI & Telemetry</a>
+                        <a href="#join-cta" class="dropdown-item">Hardware Pilot Program</a>
+                    </div>
+                </div>
+
+                <a href="#field-notes" class="nav-auth-link">Field Notes</a>
+                <a href="#consumer-impact" class="nav-auth-link">About</a>
+                </div>
+
+                <!-- Auth CTAs -->
+                <div class="nav-auth-actions">
+                    <button type="button" onclick="openAuthModal('login')" class="nav-auth-link" style="border:0; background:none; cursor:pointer; font:inherit;">Login</button>
+                    <button type="button" onclick="openAuthModal('register')" class="btn">Register</button>
+                </div>
+            </div>
+
+            <!-- Mobile Toggle -->
+            <button class="nav-toggle" onclick="toggleMobileNav()" aria-label="Toggle menu">
+                <i data-lucide="menu" style="width:24px; height:24px;"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Drawer -->
+        <div id="mobileDrawer" class="mobile-drawer">
+            <a href="#qr-verification" onclick="toggleMobileNav()">Consumer Verification</a>
+            <a href="#custody-flow" onclick="toggleMobileNav()">Custody Flow</a>
+            <a href="#beekeeper-tech" onclick="toggleMobileNav()">Smart Hive Technology</a>
+            <a href="#field-notes" onclick="toggleMobileNav()">Field Notes</a>
+            <a href="#consumer-impact" onclick="toggleMobileNav()">About Honey Chain</a>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button type="button" onclick="openAuthModal('login'); toggleMobileNav();" class="btn btn-outline" style="flex:1; padding:8px;">Login</button>
+                <button type="button" onclick="openAuthModal('register'); toggleMobileNav();" class="btn btn-primary" style="flex:1; padding:8px;">Register</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-grid">
+
+                <!-- Left Content -->
+                <div class="hero-entrance">
+
+                    <h1>Smarter hives. <em>Traceable honey.</em></h1>
+
+                    <p class="hero-sub">
+                        Connecting artisan apiculture with solar IoT monitoring and verifiable supply chain integrity. Guaranteeing pure raw honey from flower to kitchen table.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a href="#qr-verification" class="btn btn-primary">
+                            Verify Jar Origin <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+                        </a>
+                        <a href="#beekeeper-tech" class="btn btn-outline">
+                            <i data-lucide="cpu" style="width:16px; height:16px;"></i> Beekeeper Tech
+                        </a>
+                    </div>
+
+                    <div class="hero-stats" style="justify-content: center;">
+                        <div class="hero-stat">
+                            <b>100%</b>
+                            <span>Raw & Lab Verified</span>
+                        </div>
+                        <div class="hero-stat">
+                            <b>24/7</b>
+                            <span>Acoustic AI Monitoring</span>
+                        </div>
+                        <div class="hero-stat">
+                            <b>&lt; 0.01%</b>
+                            <span>Origin Discrepancy</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Visual Component (Jar + QR Card) -->
+                <div class="hero-visual hero-entrance">
+                    <div class="hex-orbit"></div>
+
+                    <div class="jar-card">
+                        <div class="badge-row">
+                            <span class="chain-badge">
+                                <i data-lucide="shield-check" style="width:14px; height:14px;"></i> SEALED BATCH
+                            </span>
+                            <span class="batch-id">HC-2026-B8492</span>
+                        </div>
+
+                        <div class="qr-wrap">
+                            <!-- SVG QR Simulation -->
+                            <svg width="140" height="140" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="100" height="100" rx="8" fill="#FBF3E1"/>
+                                <path d="M10 10H40V40H10V10ZM16 16V34H34V16H16Z" fill="#2A1B0F"/>
+                                <rect x="22" y="22" width="10" height="10" fill="#2A1B0F"/>
+                                <path d="M60 10H90V40H60V10ZM66 16V34H84V16H66Z" fill="#2A1B0F"/>
+                                <rect x="72" y="22" width="10" height="10" fill="#2A1B0F"/>
+                                <path d="M10 60H40V90H10V60ZM16 66V84H34V66H16Z" fill="#2A1B0F"/>
+                                <rect x="22" y="72" width="10" height="10" fill="#2A1B0F"/>
+                                <rect x="50" y="50" width="12" height="12" fill="#E8A317"/>
+                                <rect x="68" y="68" width="18" height="18" fill="#2A1B0F"/>
+                                <rect x="80" y="50" width="10" height="12" fill="#1F6F5C"/>
+                                <rect x="50" y="78" width="12" height="10" fill="#2A1B0F"/>
+                            </svg>
+                        </div>
+
+                        <h4>Wildflower Alpine Reserve</h4>
+                        <p style="font-size:0.8rem; color:var(--ink-soft); margin-bottom:12px;">Meadow Peak Apiary • Switzerland</p>
+
+                        <div class="jar-meta">
+                            <div><span>Moisture Level</span><b>16.2%</b></div>
+                            <div><span>Diastase Enzyme</span><b>28.4 DN</b></div>
+                            <div><span>Harvest Date</span><b>Aug 14, 2026</b></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- CONSUMER VERIFICATION TOOL -->
+    <section id="qr-verification">
+        <div class="container">
+            <div class="section-head align-center scroll-reveal">
+                <h2>Batch & QR Origin Lookup</h2>
+                <p>Enter any jar batch number to inspect immutable telemetry metrics, pollen analysis, and apiary harvest locations.</p>
+            </div>
+
+            <div class="batch-search-card scroll-reveal">
+                <div class="batch-input-group">
+                    <input type="text" id="batchInput" class="batch-input" value="HC-2026-B8492" placeholder="e.g. HC-2026-B8492">
+                    <button onclick="performBatchSearch()" class="btn btn-primary" style="padding: 10px 24px;">
+                        <i data-lucide="search" style="width:16px; height:16px;"></i> Verify
+                    </button>
+                </div>
+
+                <div class="sample-pills">
+                    <span>Try Samples:</span>
+                    <span class="sample-pill" onclick="setBatch('HC-2026-B8492')">#B8492 (Alpine)</span>
+                    <span class="sample-pill" onclick="setBatch('HC-2026-A1094')">#A1094 (Acacia)</span>
+                    <span class="sample-pill" onclick="setBatch('HC-2026-M7731')">#M7731 (Manuka)</span>
+                </div>
+
+                <!-- Result Box -->
+                <div id="batchResultCard" style="margin-top:28px; padding-top:24px; border-top:1px dashed var(--line);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+                        <div>
+                            <span class="chain-badge" style="display:inline-flex; margin-bottom:6px;">VERIFIED RAW HONEY</span>
+                            <h3 id="resName" style="font-size:1.5rem; margin:0;">Wildflower Alpine Reserve</h3>
+                            <span id="resCode" style="font-family:var(--font-mono); font-size:0.8rem; color:var(--ink-soft);">BATCH: HC-2026-B8492</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="font-size:0.8rem; color:var(--ink-soft); display:block;">Apiary Origin</span>
+                            <b id="resApiary" style="color:var(--comb-900);">Meadow Peak Apiary (1,450m)</b>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; background:var(--wax-100); padding:16px; border-radius:12px; border:1px solid var(--line);">
+                        <div>
+                            <span style="font-size:0.75rem; color:var(--ink-soft); display:block;">Pollen Spectrum</span>
+                            <b id="resPollen" style="font-size:0.9rem;">68% Wild Thyme, 32% Alpine Flora</b>
+                        </div>
+                        <div>
+                            <span style="font-size:0.75rem; color:var(--ink-soft); display:block;">Laboratory Moisture</span>
+                            <b id="resMoisture" style="font-size:0.9rem; color:var(--verified-teal);">16.2% (Grade A)</b>
+                        </div>
+                        <div>
+                            <span style="font-size:0.75rem; color:var(--ink-soft); display:block;">Telemetry Verification</span>
+                            <b id="resTelemetry" style="font-size:0.9rem; font-family:var(--font-mono);">PASSED (182Hz)</b>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- INDUSTRY PROBLEM / STATS -->
+    <section class="problem">
+        <div class="container">
+            <div class="section-head align-center scroll-reveal">
+                <h2>The Global Honey Purity Challenge</h2>
+                <p>Industrial adulteration and opaque supply chains undermine ethical beekeepers. Honey Chain enforces digital custody from hive to consumer.</p>
+            </div>
+
+            <div class="stat-grid scroll-reveal">
+                <div class="stat-cell">
+                    <b>33%</b>
+                    <span>Of tested commercial honey contains syrup adulterants.</span>
+                </div>
+                <div class="stat-cell">
+                    <b>$1.2B</b>
+                    <span>Annual global revenue loss for honest apiculturists.</span>
+                </div>
+                <div class="stat-cell">
+                    <b>100%</b>
+                    <span>Immutable IoT telemetry verification on Honey Chain.</span>
+                </div>
+                <div class="stat-cell">
+                    <b>0.2s</b>
+                    <span>Instant QR origin verification speed for consumers.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CHAIN OF CUSTODY FLOW -->
+    <section id="custody-flow" class="flow">
+        <div class="container">
+            <div class="section-head align-center scroll-reveal">
+                <h2>Unbroken Chain of Custody</h2>
+                <p>How physical hive telemetry connects to verified jar packaging across five simple steps.</p>
+            </div>
+
+            <div class="flow-track scroll-reveal">
+
+                <div class="flow-step active" onclick="setFlowStep(1)">
+                    <div class="flow-num">01</div>
+                    <h4>Smart Hive</h4>
+                    <p>Solar nodes capture weight, internal temperature, and acoustic frequency.</p>
+                </div>
+
+                <div class="flow-step" onclick="setFlowStep(2)">
+                    <div class="flow-num">02</div>
+                    <h4>Harvest</h4>
+                    <p>Beekeepers uncap comb at peak maturity without high heat degradation.</p>
+                </div>
+
+                <div class="flow-step" onclick="setFlowStep(3)">
+                    <div class="flow-num">03</div>
+                    <h4>Lab Batch</h4>
+                    <p>Mass spectrometry verifies pollen profile and moisture content.</p>
+                </div>
+
+                <div class="flow-step" onclick="setFlowStep(4)">
+                    <div class="flow-num">04</div>
+                    <h4>QR Seal</h4>
+                    <p>Cryptographic QR tamper-proof seals applied to every individual jar.</p>
+                </div>
+
+                <div class="flow-step" onclick="setFlowStep(5)">
+                    <div class="flow-num">05</div>
+                    <h4>Consumer</h4>
+                    <p>Shoppers scan jar QR to view complete apiary map and lab credentials.</p>
+                </div>
+
+            </div>
+
+            <div id="flowDescBox" style="margin-top:36px; background:var(--wax-50); border:1px solid var(--line); padding:24px; border-radius:16px; text-align:center;" class="scroll-reveal">
+                <h4 id="flowDescTitle" style="color:var(--gold-600); font-size:1.1rem; margin-bottom:6px;">Stage 01: Smart Hive Monitoring</h4>
+                <p id="flowDescText" style="margin:0; font-size:0.92rem;">Solar load scales and internal microphone arrays continuously stream hive health indicators without disturbing the colony.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- BEEKEEPER TECHNOLOGY FEATURES -->
+    <section id="beekeeper-tech">
+        <div class="container">
+            <div class="section-head scroll-reveal">
+                <h2>Engineered for Modern Apiculture</h2>
+                <p>Hardware and AI tools designed to reduce colony loss, streamline labor, and fetch fair market pricing for pure honey.</p>
+            </div>
+
+            <div class="feature-grid scroll-reveal">
+
+                <div class="feature-card" style="--icon-tint: rgba(232,163,23,0.3);">
+                    <div class="feature-icon">
+                        <i data-lucide="radio"></i>
+                    </div>
+                    <h4>Acoustic Swarm Early Warning</h4>
+                    <p>Continuous audio processing isolates queen piping and worker agitation tones to alert beekeepers 5 days before swarming occurs.</p>
+                </div>
+
+                <div class="feature-card" style="--icon-tint: rgba(31,111,92,0.3);">
+                    <div class="feature-icon">
+                        <i data-lucide="scale"></i>
+                    </div>
+                    <h4>Sub-Gram Nectar Flow Tracking</h4>
+                    <p>Cellular load scales monitor honey super weight gain hour-by-hour, pinpointing peak bloom periods across apiary sectors.</p>
+                </div>
+
+                <div class="feature-card" style="--icon-tint: rgba(74,107,69,0.3);">
+                    <div class="feature-icon">
+                        <i data-lucide="thermometer"></i>
+                    </div>
+                    <h4>Brood Cluster Thermal Mapping</h4>
+                    <p>Internal thermistors detect brood chamber drops, warning of varroa mite infestation or queen failure before loss occurs.</p>
+                </div>
+
+                <div class="feature-card" style="--icon-tint: rgba(181,80,44,0.3);">
+                    <div class="feature-icon">
+                        <i data-lucide="qr-code"></i>
+                    </div>
+                    <h4>Automated Batch Passporting</h4>
+                    <p>Generate verifiable QR labels linked to your apiary’s historical sensor data to command premium direct-to-consumer prices.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- LIVE TELEMETRY SIMULATOR PANEL -->
+    <section id="live-telemetry" style="background:var(--wax-50); border-top:1px solid var(--line); border-bottom:1px solid var(--line);">
+        <div class="container">
+            <div class="section-head align-center scroll-reveal">
+                <h2>Live Hive Telemetry Command</h2>
+                <p>Real-time telemetry feeds streaming from solar nodes deployed in active test apiaries.</p>
+            </div>
+
+            <div class="preview-panel scroll-reveal">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-bottom:16px; border-bottom:1px solid var(--line);">
+                    <div>
+                        <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--hive-green-dark); font-weight:700;">NODE ID: HC-NODE-8812</span>
+                        <h3 style="font-size:1.2rem; margin:2px 0 0;">Sector 4 • Alpine Meadow Hive #08</h3>
+                    </div>
+                    <span class="chain-badge"><span style="width:6px; height:6px; border-radius:50%; background:var(--verified-teal); display:inline-block;"></span> LIVE CONNECTED</span>
+                </div>
+
+                <div class="telemetry-grid">
+                    <div class="telemetry-box">
+                        <label>Brood Temp</label>
+                        <div class="val" id="telTemp">35.2 °C</div>
+                        <span class="status">Optimal Warmth</span>
+                    </div>
+
+                    <div class="telemetry-box">
+                        <label>Weight Delta (24h)</label>
+                        <div class="val" id="telWeight">+1.45 kg</div>
+                        <span class="status">Active Flow</span>
+                    </div>
+
+                    <div class="telemetry-box">
+                        <label>Acoustic Pitch</label>
+                        <div class="val" id="telFreq">182 Hz</div>
+                        <span class="status">Calm Hive State</span>
+                    </div>
+
+                    <div class="telemetry-box">
+                        <label>Humidity</label>
+                        <div class="val" id="telHum">52 %</div>
+                        <span class="status">Capping Threshold</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FIELD NOTES EDITORIAL CAROUSEL -->
+    <section id="field-notes">
+        <div class="container">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:36px; flex-wrap:wrap; gap:16px;" class="scroll-reveal">
+                <div class="section-head" style="margin:0;">
+                    <h2>Field Notes & Research</h2>
+                    <p>Dispatches on apiculture science, nectar spectrum analysis, and sensor engineering.</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="scrollCarousel(-340)" class="btn btn-outline" style="padding:10px 16px;" aria-label="Scroll left"><i data-lucide="chevron-left"></i></button>
+                    <button onclick="scrollCarousel(340)" class="btn btn-outline" style="padding:10px 16px;" aria-label="Scroll right"><i data-lucide="chevron-right"></i></button>
+                </div>
+            </div>
+
+            <div class="carousel-track" id="carouselTrack">
+
+                <div class="field-card">
+                    <div>
+                        <div class="field-card-img">
+                            <img src="https://images.unsplash.com/photo-1587049352847-4a222e784d38?auto=format&fit=crop&w=600&q=80" alt="Wildflower meadow">
+                        </div>
+                        <div class="field-card-body">
+                            <div class="field-card-tag">RESEARCH • 6 MIN READ</div>
+                            <h4 style="font-size:1.1rem;">Nectar Density Patterns in High-Altitude Flora</h4>
+                            <p style="font-size:0.86rem;">How micro-climates alter enzyme concentration and moisture evaporation in alpine comb honey.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <div>
+                        <div class="field-card-img">
+                            <img src="https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=600&q=80" alt="Beekeeper frame">
+                        </div>
+                        <div class="field-card-body">
+                            <div class="field-card-tag">HARDWARE • 8 MIN READ</div>
+                            <h4 style="font-size:1.1rem;">Deciphering Thermoregulation Audio Tones</h4>
+                            <p style="font-size:0.86rem;">Isolating wing-beat frequencies to detect heat stress in managed hives before honey loss.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <div>
+                        <div class="field-card-img">
+                            <img src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=600&q=80" alt="Honey jars">
+                        </div>
+                        <div class="field-card-body">
+                            <div class="field-card-tag">PURITY • 5 MIN READ</div>
+                            <h4 style="font-size:1.1rem;">Optical Pollen Fingerprinting vs Syrups</h4>
+                            <p style="font-size:0.86rem;">Why C4 sugar testing fails against modern adulterants and how optical density solves it.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-card">
+                    <div>
+                        <div class="field-card-img">
+                            <img src="https://images.unsplash.com/photo-1471943311424-646960669fbc?auto=format&fit=crop&w=600&q=80" alt="Honeycomb detail">
+                        </div>
+                        <div class="field-card-body">
+                            <div class="field-card-tag">ECOSYSTEM • 7 MIN READ</div>
+                            <h4 style="font-size:1.1rem;">Balancing Commercial Apiaries with Wild Bees</h4>
+                            <p style="font-size:0.86rem;">Best practices for density management to prevent resource depletion among native pollinators.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- CONSUMER IMPACT & ABOUT -->
+    <section id="consumer-impact" class="impact">
+        <div class="container">
+            <div class="impact-grid">
+
+                <div class="scroll-reveal">
+                    <h2>Our Commitment to Honest Honey</h2>
+                    <p>Honey Chain was founded by beekeepers and sensor engineers to create a transparent, dignified marketplace for pure raw honey.</p>
+
+                    <ul class="impact-list">
+                        <li>
+                            <div class="num">01</div>
+                            <div>
+                                <h4>Solar Telemetry Hardware</h4>
+                                <p>Self-powered nodes engineered specifically for standard Langstroth hives without wiring.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="num">02</div>
+                            <div>
+                                <h4>Direct Fair Returns</h4>
+                                <p>Artisan beekeepers capture up to 40% higher margins through authenticated provenance pricing.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="num">03</div>
+                            <div>
+                                <h4>Unadulterated Guarantee</h4>
+                                <p>Every jar sealed on Honey Chain carries an individual lab certificate hash accessible to any smartphone.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Apiary Network Visual Card -->
+                <div class="map-card scroll-reveal">
+                    <h4>Active Partner Apiaries</h4>
+                    <p style="color:rgba(251,243,225,0.75); font-size:0.86rem; margin-bottom:30px;">Deployments active across 14 alpine and agricultural regions.</p>
+
+                    <!-- Decorative Map Dots -->
+                    <div class="map-dot" style="top:30%; left:25%;"></div>
+                    <div class="map-dot" style="top:45%; left:48%;"></div>
+                    <div class="map-dot" style="top:60%; left:70%;"></div>
+                    <div class="map-dot" style="top:35%; left:82%;"></div>
+
+                    <div style="position:absolute; bottom:24px; left:24px; right:24px; background:rgba(42,27,15,0.6); backdrop-filter:blur(6px); padding:16px; border-radius:12px; border:1px solid rgba(251,243,225,0.15);">
+                        <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--gold-300);">ACTIVE NODES</span>
+                        <div style="font-family:var(--font-display); font-size:1.4rem; color:var(--wax-50);">1,280 Verified Hives Online</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- FINAL BEEKEEPER CTA BANNER -->
+    <section id="join-cta" style="padding: 40px 0 96px;">
+        <div class="container">
+            <div class="cta scroll-reveal">
+                <div>
+                    <h2>Equip Your Apiary with Honey Chain</h2>
+                    <p>Join our hardware pilot program. Get solar hive nodes, early swarm alerts, and verified batch passports for your harvest.</p>
+                </div>
+                <div>
+                    <button type="button" onclick="openAuthModal('register')" class="btn btn-primary" style="font-size:1.05rem; padding:16px 32px;">
+                        Apply for Hardware Pilot
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="container">
+            <div class="foot-grid">
+
+                <div class="foot-brand">
+                    <a href="#" class="brand" style="margin-bottom:12px;">
+                        <i data-lucide="hexagon" class="brand-logo" style="color: var(--gold-500);"></i>
+                        <span>Honey Chain</span>
+                    </a>
+                    <p>Connecting apiculture with verified supply chain provenance. Protecting bees, supporting beekeepers, and guaranteeing pure raw honey worldwide.</p>
+                </div>
+
+                <div class="foot-cols">
+                    <div class="foot-col">
+                        <h5>Consumers</h5>
+                        <a href="#qr-verification">Verify Jar Code</a>
+                        <a href="#custody-flow">Chain of Custody</a>
+                        <a href="#consumer-impact">Origin Guarantee</a>
+                    </div>
+
+                    <div class="foot-col">
+                        <h5>Beekeepers</h5>
+                        <a href="#beekeeper-tech">Smart Hive IoT</a>
+                        <a href="#live-telemetry">Live Telemetry</a>
+                        <a href="#join-cta">Pilot Program</a>
+                    </div>
+
+                    <div class="foot-col">
+                        <h5>Resources</h5>
+                        <a href="#field-notes">Field Notes</a>
+                        <a href="#consumer-impact">About Mission</a>
+                        <a href="#">Telemetry Specs</a>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="foot-bottom">
+                <div>&copy; 2026 Honey Chain Technologies. All rights reserved.</div>
+                <div style="display:flex; gap:20px;">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Apiary Guidelines</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="authModal" class="modal-overlay" aria-hidden="true" onclick="handleLoginOverlayClick(event)">
+        <section class="modal-box login-modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalSub">
+            <button type="button" onclick="closeLoginModal()" class="login-modal-close" aria-label="Close dialog">
+                <i data-lucide="x" aria-hidden="true"></i>
+            </button>
+
+            <h3 id="modalTitle">Login to Honey Chain</h3>
+
+            <form id="login-form" class="login-modal-form">
+                <div class="login-modal-field">
+                    <label for="login-email">Email Address</label>
+                    <input id="login-email" name="email" type="email" autocomplete="email" required placeholder="name@apiary.com" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="login-password">Password</label>
+                    <input id="login-password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••" class="batch-input">
+                </div>
+                <button type="submit" id="login-submit" class="btn btn-primary login-modal-submit">Sign In</button>
+            </form>
+
+            <p id="login-status" class="login-modal-status" role="status" aria-live="polite"></p>
+            <div class="login-divider"><span>or</span></div>
+            <button id="google-sign-in" class="gsi-material-button" type="button">
+                <div class="gsi-material-button-state"></div>
+                <div class="gsi-material-button-content-wrapper">
+                    <div class="gsi-material-button-icon">
+                        <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block;">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                            <path fill="none" d="M0 0h48v48H0z"></path>
+                        </svg>
+                    </div>
+                    <span class="gsi-material-button-contents">Sign in with Google</span>
+                    <span style="display: none;">Sign in with Google</span>
+                </div>
+            </button>
+            <p id="google-status" class="login-modal-status" role="status" aria-live="polite"></p>
+
+            <form id="register-form" class="login-modal-form" enctype="multipart/form-data" hidden>
+                <div class="login-modal-field">
+                    <label for="register-name">Full name</label>
+                    <input id="register-name" name="name" type="text" autocomplete="name" required placeholder="Your full name" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-email">Email Address</label>
+                    <input id="register-email" name="email" type="email" autocomplete="email" required placeholder="name@apiary.com" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-password">Password</label>
+                    <input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-phone">Phone number</label>
+                    <input id="register-phone" name="phone" type="tel" autocomplete="tel" required placeholder="Phone number" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-location">Location</label>
+                    <input id="register-location" name="location" type="text" autocomplete="address-level2" required placeholder="City, region" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-identity-type">Identity document type</label>
+                    <input id="register-identity-type" name="identity_document_type" type="text" required placeholder="e.g. Aadhaar / PAN / Passport" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-identity-file">Identity document file</label>
+                    <input id="register-identity-file" name="identity_document" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-address-type">Address proof type <span class="optional-label">(optional)</span></label>
+                    <input id="register-address-type" name="address_document_type" type="text" placeholder="Only needed if identity document has no current address" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-address-file">Address proof file <span class="optional-label">(optional)</span></label>
+                    <input id="register-address-file" name="address_document" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-certificate-type">Certificate type</label>
+                    <input id="register-certificate-type" name="certificate_type" type="text" required placeholder="e.g. Beekeeping / training certificate" class="batch-input">
+                </div>
+                <div class="login-modal-field">
+                    <label for="register-certificate-file">Certificate file</label>
+                    <input id="register-certificate-file" name="certificate" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required class="batch-input">
+                </div>
+                <button type="submit" id="register-submit" class="btn btn-primary login-modal-submit">Create account &amp; submit</button>
+            </form>
+
+            <p id="register-status" class="login-modal-status" role="status" aria-live="polite"></p>
+
+            <div class="login-modal-register" id="login-modal-switch">
+                <span>Don't have an account?</span>
+                <button type="button" onclick="setAuthModalMode('register')">Register here</button>
+            </div>
+            <div class="login-modal-register" id="register-modal-switch" hidden>
+                <span>Already have an account?</span>
+                <button type="button" onclick="setAuthModalMode('login')">Login here</button>
+            </div>
+        </section>
     </div>
 
-    <div class="hero-visual">
-      <div class="jar-card">
-        <div class="badge-row">
-          <span class="chain-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-            Verified on-chain
-          </span>
-          <span class="batch-id">#HC-7734-IN</span>
-        </div>
-        <div class="qr-wrap">
-          <svg width="120" height="120" viewBox="0 0 120 120">
-            <rect width="120" height="120" rx="12" fill="#FBF3E1"/>
-            <g fill="#2A1B0F">
-              <rect x="10" y="10" width="30" height="30"/><rect x="18" y="18" width="14" height="14" fill="#FBF3E1"/>
-              <rect x="80" y="10" width="30" height="30"/><rect x="88" y="18" width="14" height="14" fill="#FBF3E1"/>
-              <rect x="10" y="80" width="30" height="30"/><rect x="18" y="88" width="14" height="14" fill="#FBF3E1"/>
-              <rect x="50" y="10" width="8" height="8"/><rect x="66" y="10" width="8" height="8"/>
-              <rect x="50" y="26" width="8" height="8"/><rect x="58" y="42" width="8" height="8"/>
-              <rect x="74" y="50" width="8" height="8"/><rect x="90" y="50" width="8" height="8"/>
-              <rect x="106" y="58" width="8" height="8"/><rect x="50" y="58" width="8" height="8"/>
-              <rect x="50" y="74" width="8" height="8"/><rect x="66" y="82" width="8" height="8"/>
-              <rect x="82" y="90" width="8" height="8"/><rect x="98" y="98" width="8" height="8"/>
-              <rect x="66" y="98" width="8" height="8"/><rect x="90" y="74" width="8" height="8"/>
-            </g>
-          </svg>
-        </div>
-        <h4>Wild Forest Honey, 500g</h4>
-        <div class="jar-meta">
-          <div><span>Harvested by</span><b>Lakshmi Beekeepers, Araku</b></div>
-          <div><span>Harvest date</span><b id="current-harvest-date">Loading...</b></div>
-          <div><span>Moisture / purity</span><b>17.2% · Passed</b></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</header>
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        let loginOpener = null;
 
-<section class="problem">
-  <div class="container">
-    <div class="section-head align-center">
-      <h2>The trust gap costs beekeepers the most</h2>
-      <p>Counterfeit honey and untraceable supply chains erode consumer confidence and push down the price genuine, rural-produced honey can command.</p>
-    </div>
-    <div class="stat-grid">
-      <div class="stat-cell"><b>~40%</b><span>of honey sold in India has been found adulterated in market surveys</span></div>
-      <div class="stat-cell"><b>0</b><span>batch-level proof most rural producers can currently offer a buyer</span></div>
-      <div class="stat-cell"><b>2–3×</b><span>price gap between certified-traceable and unverified honey</span></div>
-      <div class="stat-cell"><b>1 scan</b><span>is all it should take to settle the question</span></div>
-    </div>
-  </div>
-</section>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initAnimations();
+            startTelemetryJitter();
+        });
 
-<section id="how-it-works" class="flow-section">
-  <div class="container">
-    <div class="section-head">
-      <h2>From hive to hand, five recorded steps</h2>
-      <p>Each stage writes an immutable entry to the ledger, so no step in the journey can be quietly skipped or altered.</p>
-    </div>
-    <div class="flow flow-track">
-      <div class="flow-step">
-        <div class="flow-num">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--comb-900)" stroke-width="1.6"><path d="M12 2L21 7V17L12 22L3 17V7L12 2Z"/></svg>
-        </div>
-        <h4>Registered hive</h4>
-        <p>Beekeeper and hive are enrolled with a digital ID and GPS location.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-num">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--comb-900)" stroke-width="1.6"><path d="M4 12h16M4 6h16M4 18h16"/></svg>
-        </div>
-        <h4>Harvest logged</h4>
-        <p>Yield, date and hive sensor history are attached to a new batch record.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-num">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--comb-900)" stroke-width="1.6"><path d="M9 12l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
-        </div>
-        <h4>Lab & quality check</h4>
-        <p>Purity and moisture results are hashed and written to the chain.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-num">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--comb-900)" stroke-width="1.6"><path d="M3 7h4l2-2h6l2 2h4v13H3V7z"/></svg>
-        </div>
-        <h4>Sealed & QR-labelled</h4>
-        <p>Bottling generates a unique QR tied permanently to the batch record.</p>
-      </div>
-      <div class="flow-step">
-        <div class="flow-num">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--comb-900)" stroke-width="1.6"><path d="M12 21c-4-4-8-7.5-8-12a8 8 0 0 1 16 0c0 4.5-4 8-8 12z"/></svg>
-        </div>
-        <h4>Consumer scans</h4>
-        <p>Anyone can verify origin, quality and the beekeeper behind the jar.</p>
-      </div>
-    </div>
-  </div>
-</section>
+        // Mobile Nav Drawer Toggle
+        function toggleMobileNav() {
+            document.getElementById('mobileDrawer').classList.toggle('active');
+        }
 
-<section id="features">
-  <div class="container">
-    <div class="section-head">
-      <h2>One platform, three layers working together</h2>
-      <p>Blockchain secures the record, IoT and AI keep the hives healthy and productive, and a simple scan brings both to the consumer.</p>
-    </div>
-    <div class="feature-grid">
-      <div class="feature-card" style="--icon-tint:var(--verified-teal)33">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="3" y="8" width="6" height="6" rx="1"/><rect x="15" y="8" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M12 8V6M9 11H6v-3M15 11h3v-3"/></svg></div>
-        <h4>Blockchain batch ledger</h4>
-        <p>Every harvest, lab result and ownership transfer is written to an immutable ledger, creating a single source of truth from hive to shelf.</p>
-      </div>
-      <div class="feature-card" style="--icon-tint:var(--gold-300)">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9h.01M15 9h.01M9 15c1.2 1 2.8 1 4 0"/></svg></div>
-        <h4>Consumer QR verification</h4>
-        <p>A scan on any phone shows the beekeeper, harvest date and quality results — no app install required.</p>
-      </div>
-      <div class="feature-card" style="--icon-tint:var(--hive-green)33">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/><circle cx="12" cy="12" r="4"/></svg></div>
-        <h4>IoT hive monitoring</h4>
-        <p>Temperature, humidity, weight and acoustic sensors inside each hive stream live readings to the beekeeper's dashboard.</p>
-      </div>
-      <div class="feature-card" style="--icon-tint:var(--alert-rust)33">
-        <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2.3h6c0-1.1.4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg></div>
-        <h4>AI disease & yield prediction</h4>
-        <p>Models trained on sensor and imagery data flag early signs of colony stress and forecast expected honey yield per hive.</p>
-      </div>
-    </div>
-  </div>
-</section>
+        function setAuthModalMode(mode) {
+            const isRegister = mode === 'register';
+            document.getElementById('modalTitle').textContent = isRegister
+                ? 'Register for Honey Chain'
+                : 'Login to Honey Chain';
+            document.getElementById('modalSub').textContent = isRegister
+                ? 'Create your beekeeper account and submit your details for review.'
+                : 'Access your apiary telemetry dashboard or verified batch reports.';
+            document.getElementById('login-form').hidden = isRegister;
+            document.getElementById('login-status').hidden = isRegister;
+            document.querySelector('.login-divider').hidden = isRegister;
+            document.getElementById('google-sign-in').hidden = isRegister;
+            document.getElementById('google-status').hidden = isRegister;
+            document.getElementById('register-form').hidden = !isRegister;
+            document.getElementById('register-status').hidden = !isRegister;
+            document.getElementById('login-modal-switch').hidden = isRegister;
+            document.getElementById('register-modal-switch').hidden = !isRegister;
+            document.querySelector('.login-modal-box').classList.toggle('register-mode', isRegister);
+            document.getElementById(isRegister ? 'register-name' : 'login-email').focus();
+        }
 
-<section id="impact" class="impact">
-  <div class="container impact-grid">
-    <div>
-      <div class="section-head">
-        <h2>Built to scale across beekeeping clusters</h2>
-        <p>A deployment path designed around how KVIC and its state boards already organise beekeepers, not around replacing it.</p>
-      </div>
-      <ul class="impact-list">
-        <li>
-          <span class="num">1</span>
-          <div><h4>Cluster onboarding</h4><p>Local Honey Mission coordinators register beekeepers and hives in bulk through a field app, in local languages.</p></div>
-        </li>
-        <li>
-          <span class="num">2</span>
-          <div><h4>Shared sensor kits</h4><p>Low-cost IoT kits are rotated across hives within a cluster, keeping hardware cost per beekeeper low.</p></div>
-        </li>
-        <li>
-          <span class="num">3</span>
-          <div><h4>Regional lab network</h4><p>Existing KVIC-affiliated testing labs upload purity results directly into the ledger.</p></div>
-        </li>
-        <li>
-          <span class="num">4</span>
-          <div><h4>Market linkage</h4><p>Verified batches become eligible for listing with aggregators and retailers seeking traceable honey.</p></div>
-        </li>
-      </ul>
-    </div>
-    <div class="map-card">
-      <h4>Pilot clusters, illustrative</h4>
-      <p style="color:rgba(251,243,225,0.65); font-size:0.88rem;">Sample rollout across existing Honey Mission regions</p>
-      <svg viewBox="0 0 320 300" width="100%" style="margin-top:10px;">
-        <path d="M60 20 L120 15 L180 30 L220 20 L270 50 L290 100 L280 160 L260 210 L220 260 L170 280 L120 275 L80 250 L50 210 L30 160 L25 100 L40 55 Z" fill="rgba(251,243,225,0.06)" stroke="rgba(251,243,225,0.25)" stroke-width="1.5"/>
-        <circle cx="120" cy="90" r="5" fill="#F4C64E"/>
-        <circle cx="180" cy="140" r="5" fill="#F4C64E"/>
-        <circle cx="150" cy="200" r="5" fill="#F4C64E"/>
-        <circle cx="90" cy="180" r="5" fill="#F4C64E"/>
-        <circle cx="210" cy="90" r="5" fill="#F4C64E"/>
-      </svg>
-    </div>
-  </div>
-</section>
+        function openAuthModal(mode = 'login') {
+            const modal = document.getElementById('authModal');
+            loginOpener = document.activeElement;
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('login-modal-open');
+            setAuthModalMode(mode);
+        }
 
-<script>
-  document.querySelector('#current-harvest-date').textContent = new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-  }).format(new Date());
-</script>
+        function openLoginModal() {
+            openAuthModal('login');
+        }
+
+        function closeLoginModal() {
+            const modal = document.getElementById('authModal');
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('login-modal-open');
+            if (loginOpener instanceof HTMLElement) loginOpener.focus();
+        }
+
+        function handleLoginOverlayClick(event) {
+            if (event.target === event.currentTarget) closeLoginModal();
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && document.getElementById('authModal').classList.contains('active')) {
+                closeLoginModal();
+            }
+        });
+
+        // Batch Database Simulator
+        const batches = {
+            'HC-2026-B8492': {
+                name: 'Wildflower Alpine Reserve',
+                code: 'BATCH: HC-2026-B8492',
+                apiary: 'Meadow Peak Apiary (1,450m)',
+                pollen: '68% Wild Thyme, 32% Alpine Flora',
+                moisture: '16.2% (Grade A)',
+                telemetry: 'PASSED (182Hz)'
+            },
+            'HC-2026-A1094': {
+                name: 'Organic Acacia Blossom Honey',
+                code: 'BATCH: HC-2026-A1094',
+                apiary: 'Sun Valley Acacia Grove',
+                pollen: '88% Robinia Acacia, 12% Meadow',
+                moisture: '15.8% (Grade A+)',
+                telemetry: 'PASSED (176Hz)'
+            },
+            'HC-2026-M7731': {
+                name: 'Raw Coastal Manuka Monofloral',
+                code: 'BATCH: HC-2026-M7731',
+                apiary: 'East Cape Sanctuary (NZ)',
+                pollen: '91% Wild Leptospermum',
+                moisture: '16.9% (Optimal)',
+                telemetry: 'PASSED (190Hz)'
+            }
+        };
+
+        function performBatchSearch() {
+            const raw = document.getElementById('batchInput').value.trim().toUpperCase();
+            const data = batches[raw] || batches['HC-2026-B8492'];
+
+            document.getElementById('resName').innerText = data.name;
+            document.getElementById('resCode').innerText = data.code;
+            document.getElementById('resApiary').innerText = data.apiary;
+            document.getElementById('resPollen').innerText = data.pollen;
+            document.getElementById('resMoisture').innerText = data.moisture;
+            document.getElementById('resTelemetry').innerText = data.telemetry;
+
+            anime({
+                targets: '#batchResultCard',
+                scale: [0.97, 1],
+                opacity: [0.6, 1],
+                duration: 350,
+                easing: 'easeOutQuad'
+            });
+        }
+
+        function setBatch(code) {
+            document.getElementById('batchInput').value = code;
+            performBatchSearch();
+        }
+
+        // Chain of Custody Step Switcher
+        const flowStepsData = {
+            1: { title: "Stage 01: Smart Hive Monitoring", text: "Solar load scales and internal microphone arrays continuously stream hive health indicators without disturbing the colony." },
+            2: { title: "Stage 02: Gentle Harvest", text: "Combs are extracted by artisan beekeepers at full capping maturity, preserving natural invertase enzymes and live pollen." },
+            3: { title: "Stage 03: Mass Spectrometry Testing", text: "Laboratory optical checks verify pollen spectrum purity and ensure moisture levels remain safely below 18%." },
+            4: { title: "Stage 04: Cryptographic QR Packaging", text: "Tamper-proof serial QR seals link each physical jar directly to its laboratory certificate and telemetry records." },
+            5: { title: "Stage 05: Consumer Origin Lookup", text: "Shoppers scan the jar seal at their kitchen table to view the exact apiary coordinates, harvest date, and lab report." }
+        };
+
+        function setFlowStep(stepNum) {
+            const steps = document.querySelectorAll('.flow-step');
+            steps.forEach((step, idx) => {
+                if (idx + 1 === stepNum) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+
+            const data = flowStepsData[stepNum];
+            document.getElementById('flowDescTitle').innerText = data.title;
+            document.getElementById('flowDescText').innerText = data.text;
+
+            anime({
+                targets: '#flowDescBox',
+                translateY: [6, 0],
+                opacity: [0.7, 1],
+                duration: 300,
+                easing: 'easeOutCubic'
+            });
+        }
+
+        // Field Notes Carousel Scroll
+        function scrollCarousel(amount) {
+            document.getElementById('carouselTrack').scrollBy({ left: amount, behavior: 'smooth' });
+        }
+
+        // Live Telemetry Value Fluctuation Simulation
+        function startTelemetryJitter() {
+            setInterval(() => {
+                const tempEl = document.getElementById('telTemp');
+                const weightEl = document.getElementById('telWeight');
+                const freqEl = document.getElementById('telFreq');
+
+                if (tempEl) tempEl.innerText = (35.2 + (Math.random() * 0.4 - 0.2)).toFixed(1) + ' °C';
+                if (weightEl) weightEl.innerText = '+' + (1.45 + (Math.random() * 0.04 - 0.02)).toFixed(2) + ' kg';
+                if (freqEl) freqEl.innerText = Math.floor(182 + (Math.random() * 6 - 3)) + ' Hz';
+            }, 3500);
+        }
+
+        // Anime.js Motion Effects
+        function initAnimations() {
+            anime({
+                targets: '.hero-entrance',
+                translateY: [20, 0],
+                opacity: [0, 1],
+                delay: anime.stagger(120),
+                duration: 800,
+                easing: 'easeOutCubic'
+            });
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        anime({
+                            targets: entry.target,
+                            translateY: [24, 0],
+                            opacity: [0, 1],
+                            duration: 750,
+                            easing: 'easeOutCubic'
+                        });
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12 });
+
+            document.querySelectorAll('.scroll-reveal').forEach(el => {
+                el.style.opacity = '0';
+                observer.observe(el);
+            });
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/assets/auth/auth.js"></script>
 </body>
 </html>

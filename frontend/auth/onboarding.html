@@ -17,17 +17,23 @@
       <div class="success-icon" aria-hidden="true">✓</div>
       <p class="success-eyebrow">Application received</p>
       <h2>Application submitted, status pending</h2>
-      <p class="success-copy">Your beekeeper registration has been submitted successfully. Our review team will assess your details shortly and update your status.</p>
+      <p class="success-copy">Your application is still pending approval. Our team will review your submitted details and documents. You will be able to access your beekeeper dashboard once your application has been approved.</p>
       <div class="success-actions">
         <button type="button" id="edit-application-btn" class="secondary-button">Edit details of application</button>
       </div>
     </div>
 
     <div id="form-state">
-      <h1 id="onboarding-title">Tell us about yourself.</h1>
-      <p id="onboarding-message" class="auth-intro">We need these details to personalize your hive workspace and batch records.</p>
-      <p id="rejection-banner" class="auth-status" style="display:none; color:#c0392b; font-weight:600; margin-bottom:12px;">Previous application was rejected. Please review and resubmit.</p>
+      <h1 id="onboarding-title">Create your beekeeper account.</h1>
+      <p id="onboarding-message" class="auth-intro">Share a few details to create your account and submit your beekeeper application for review.</p>
+      <p id="rejection-banner" class="auth-status" style="display:none; color:#c0392b; font-weight:600; margin-bottom:12px;">Your application was rejected. Please review your submitted information and reapply with the required corrections.</p>
       <form class="credentials-form" id="onboarding-form" enctype="multipart/form-data">
+      <div id="registration-credentials">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" autocomplete="email" placeholder="name@apiary.com" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+      </div>
       <label for="name">Full name</label>
       <input id="name" name="name" type="text" autocomplete="name" required>
       <label for="phone">Phone number</label>
@@ -50,9 +56,10 @@
       <label for="certificate">Certificate file</label>
       <input id="certificate" name="certificate" type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
 
-      <button class="google-button" type="submit">Submit application</button>
+      <button id="onboarding-submit" class="google-button" type="submit">Create account & submit application</button>
       <p id="onboarding-status" class="auth-status" role="status"></p>
       </form>
+      <p id="onboarding-auth-switch" class="auth-switch">Already registered? <a href="/auth">Log in here</a></p>
     </div>
   </section>
 </main>
