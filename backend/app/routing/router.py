@@ -259,6 +259,24 @@ def serve_frontend_image(filename: str) -> FileResponse:
     return FileResponse(image_path)
 
 
+@router.get("/src/bee/bee.js", include_in_schema=False)
+def serve_bee_module() -> FileResponse:
+    return FileResponse(
+        FRONTEND_DIR / "src" / "components" / "bee.js",
+        media_type="text/javascript",
+    )
+
+
+@router.get("/src/assets/bee/{filename}", include_in_schema=False)
+def serve_bee_animation_frame(filename: str) -> FileResponse:
+    if filename not in {f"cbee-{frame}.png" for frame in range(1, 5)}:
+        raise HTTPException(status_code=404, detail="Bee animation frame not found")
+    image_path = FRONTEND_DIR / "src" / "assets" / "bee" / filename
+    if not image_path.is_file():
+        raise HTTPException(status_code=404, detail="Bee animation frame not found")
+    return FileResponse(image_path)
+
+
 @router.get("/assets/verify/style.css", include_in_schema=False)
 def verify_styles() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "verify" / "style.css")

@@ -150,6 +150,13 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
   padding:48px 0 60px;
   overflow:hidden;
 }
+.hero-bee-container{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  overflow:hidden;
+  pointer-events:none;
+}
 .hero::before {
   content:"";
   position: absolute;
@@ -543,6 +550,7 @@ body.login-modal-open{overflow:hidden;}
 
     <!-- HERO SECTION -->
     <section class="hero">
+        <div id="hero-bee" class="hero-bee-container" aria-hidden="true"></div>
         <div class="container">
             <div class="hero-grid">
 
@@ -1345,6 +1353,17 @@ body.login-modal-open{overflow:hidden;}
                 observer.observe(el);
             });
         }
+    </script>
+    <script type="module">
+        import { createBee } from "/src/bee/bee.js";
+
+        const container = document.querySelector("#hero-bee");
+        createBee({
+            container,
+            size: 100,
+            movement: "fly",
+            duration: 5000
+        });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/assets/auth/auth.js"></script>
