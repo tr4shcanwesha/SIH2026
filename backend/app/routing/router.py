@@ -57,7 +57,12 @@ def auth_page(request: Request) -> FileResponse | RedirectResponse:
             status_code=303,
             headers={"Cache-Control": "no-store"},
         )
-    destination = "/onboarding?status=rejected" if status == "rejected" else "/onboarding?status=pending"
+    destination = f"/auth?status={status}"
+    if request.query_params.get("status") == status:
+        return FileResponse(
+            FRONTEND_DIR / "auth" / "auth.html",
+            headers={"Cache-Control": "no-store"},
+        )
     return RedirectResponse(
         url=destination,
         status_code=303,

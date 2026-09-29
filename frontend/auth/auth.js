@@ -6,6 +6,26 @@ const loginButton = document.querySelector('#login-submit');
 const registerForm = document.querySelector('#register-form');
 const registerStatus = document.querySelector('#register-status');
 const registerButton = document.querySelector('#register-submit');
+const applicationStatus = document.querySelector('#application-status');
+const applicationStatusMessage = document.querySelector('#application-status-message');
+const applicationResubmit = document.querySelector('#application-resubmit');
+
+function showApplicationStatus() {
+  const status = new URLSearchParams(window.location.search).get('status');
+  if (!applicationStatus || !applicationStatusMessage) return;
+
+  if (status === 'rejected') {
+    applicationStatus.classList.add('rejected');
+    applicationStatusMessage.textContent =
+      'Your previous application was rejected. Please review your details and resubmit it for approval.';
+    if (applicationResubmit) applicationResubmit.hidden = false;
+    applicationStatus.hidden = false;
+  } else if (status === 'pending') {
+    applicationStatusMessage.textContent =
+      'Your application has been submitted and is pending review.';
+    applicationStatus.hidden = false;
+  }
+}
 
 function createSupabaseClient() {
   return window.supabase.createClient(
@@ -142,6 +162,7 @@ async function exchangeGoogleSession() {
 googleButton?.addEventListener('click', startGoogleSignIn);
 loginForm?.addEventListener('submit', signInWithPassword);
 registerForm?.addEventListener('submit', registerWithEmail);
+showApplicationStatus();
 exchangeGoogleSession().catch((error) => {
   document.documentElement.classList.remove('oauth-callback-pending');
   googleStatus.textContent = error.message;

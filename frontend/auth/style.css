@@ -49,6 +49,28 @@
 .auth-modal-close:hover{background:rgba(42,27,15,.07);color:var(--comb-900);}
 .auth-modal-title{font-size:1.6rem;max-width:none;margin:0 36px 4px 0;}
 .auth-modal-subtitle{font-size:.86rem;margin:0 0 20px;}
+.application-status{
+  margin:0 0 20px;
+  padding:14px 16px;
+  border:1px solid rgba(31,111,92,.22);
+  border-radius:12px;
+  background:rgba(31,111,92,.08);
+  color:var(--comb-900);
+  font-size:.9rem;
+}
+.application-status[hidden]{display:none;}
+.application-status p{margin:0;}
+.application-status.rejected{
+  border-color:rgba(181,80,44,.3);
+  background:rgba(181,80,44,.08);
+}
+.application-status a{
+  display:inline-block;
+  margin-top:8px;
+  color:var(--alert-rust);
+  font-weight:700;
+  text-decoration:underline;
+}
 .auth-modal-form{display:flex;flex-direction:column;gap:14px;}
 .auth-modal-field label{display:block;font-size:.8rem;font-weight:600;color:var(--comb-900);margin-bottom:4px;}
 .auth-modal-field .batch-input{

@@ -34,6 +34,10 @@
 
     <h1 id="auth-title" class="auth-modal-title">Login to Honey Chain</h1>
     <p class="auth-modal-subtitle">Access your apiary telemetry dashboard or verified batch reports.</p>
+    <div id="application-status" class="application-status" role="status" aria-live="polite" hidden>
+      <p id="application-status-message"></p>
+      <a id="application-resubmit" href="/onboarding?edit=1" hidden>Review and resubmit your application</a>
+    </div>
 
     <form id="login-form" class="auth-modal-form">
       <div class="auth-modal-field">

@@ -321,8 +321,8 @@ def password_login(payload: dict[str, str]) -> JSONResponse:
     status = str(beekeeper.get("kyc_status", "pending")).strip().lower()
     destination = {
         "approved": "/dashboard",
-        "rejected": "/onboarding?status=rejected",
-    }.get(status, "/onboarding?status=pending")
+        "rejected": "/auth?status=rejected",
+    }.get(status, "/auth?status=pending")
     return session_json(destination, beekeeper_id=beekeeper_id)
 
 
@@ -478,9 +478,9 @@ def google_session(access_token: str = Form(...), refresh_token: str = Form(""))
     elif beekeeper_status == "approved":
         destination = "/dashboard"
     elif beekeeper_status == "rejected":
-        destination = "/onboarding?status=rejected"
+        destination = "/auth?status=rejected"
     else:
-        destination = "/onboarding?status=pending"
+        destination = "/auth?status=pending"
     logger.info(
         "Google login decision: email=%s matched=%s status=%s destination=%s",
         mask_email(email),

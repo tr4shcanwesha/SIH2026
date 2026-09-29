@@ -128,6 +128,21 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
 }
 .nav-auth-link{font-size:0.92rem; color:var(--ink-soft); font-weight:600; background:none; border:none; cursor:pointer;}
 .nav-auth-link:hover{color:var(--gold-600);}
+.site-nav .nav-links .nav-login-button{
+  min-width:6.75em;
+  border:none;
+  outline:1.5px solid var(--gold-600);
+  outline-offset:-1px;
+  border-radius:100px;
+  background:transparent;
+  color:var(--gold-600);
+  box-shadow:none;
+}
+.site-nav .nav-links .nav-login-button:hover{
+  background:transparent;
+  color:var(--gold-500);
+  outline-color:var(--gold-500);
+}
 .nav-toggle{display:none; background:none; border:none; cursor:pointer; color:var(--comb-900);}
 
 /* Mobile menu overlay */
@@ -151,11 +166,11 @@ p{margin:0 0 1em 0;color:var(--ink-soft);}
   overflow:hidden;
 }
 .hero-bee-container{
-  position:absolute;
+  position:fixed;
   inset:0;
-  z-index:2;
-  overflow:hidden;
+  z-index:40;
   pointer-events:none;
+  overflow:hidden;
 }
 .hero::before {
   content:"";
@@ -523,7 +538,7 @@ body.login-modal-open{overflow:hidden;}
 
                 <!-- Auth CTAs -->
                 <div class="nav-auth-actions">
-                    <button type="button" onclick="openAuthModal('login')" class="nav-auth-link" style="border:0; background:none; cursor:pointer; font:inherit;">Login</button>
+                    <button type="button" onclick="openAuthModal('login')" class="btn nav-login-button">Login</button>
                     <button type="button" onclick="openAuthModal('register')" class="btn">Register</button>
                 </div>
             </div>
@@ -548,9 +563,10 @@ body.login-modal-open{overflow:hidden;}
         </div>
     </nav>
 
+    <div id="hero-bee" class="hero-bee-container" aria-hidden="true"></div>
+
     <!-- HERO SECTION -->
     <section class="hero">
-        <div id="hero-bee" class="hero-bee-container" aria-hidden="true"></div>
         <div class="container">
             <div class="hero-grid">
 
@@ -1058,6 +1074,7 @@ body.login-modal-open{overflow:hidden;}
             </button>
 
             <h3 id="modalTitle">Login to Honey Chain</h3>
+            <p id="modalSub">Access your apiary telemetry dashboard or verified batch reports.</p>
 
             <form id="login-form" class="login-modal-form">
                 <div class="login-modal-field">
@@ -1360,9 +1377,8 @@ body.login-modal-open{overflow:hidden;}
         const container = document.querySelector("#hero-bee");
         createBee({
             container,
-            size: 100,
-            movement: "fly",
-            duration: 5000
+            size: 64,
+            movement: "follow"
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
